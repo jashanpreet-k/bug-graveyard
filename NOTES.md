@@ -657,3 +657,100 @@ the live Studio showed the right menu for each of the three real bugs.
 - **The whole lifecycle runs on the same live pipeline as the site.** Clicking an
   action updates the homepage and grave pages within about a second, through the
   Studio's `<SanityLive />` and the webhook.
+
+---
+
+## Phase 6: Live Tombstone preview in the Studio (2026-09-29)
+
+### What I asked for
+
+- Use the structure tool's `defaultDocumentNode` to give bug documents a second tab:
+  "Editor" (the normal form) and "🪦 Tombstone".
+- The Tombstone tab shows the site's own Tombstone component (resting, disturbed or
+  zombie), large, on a small night sky so it looks like the site.
+- It updates live as I type, using the draft if there is one and the published bug
+  otherwise, including the epitaph, name, dates and status. The language and cause of
+  death are resolved so the badges show.
+- A counter under the stone for the 140-character epitaph limit, and "Rose from
+  <previous life>" for zombies, as on the site.
+- A better Studio sidebar: All graves, Zombies, Suspected dead, Fix merged and Buried,
+  then Languages and Causes of death, with icons for the document types.
+- Test it, run build, lint and type-check, add this entry, commit and deploy.
+
+### What was built
+
+- `sanity/components/TombstoneView.tsx` and `.module.css`: the Tombstone tab. It
+  renders the site's `Tombstone` from `document.displayed`, which is the draft while
+  you edit and the published bug otherwise. It adds a night-sky backdrop, the site's
+  grass, and the epitaph counter.
+- `sanity/structure.ts`: the new sidebar, plus `defaultDocumentNode` giving bugs the
+  Editor and 🪦 Tombstone tabs
+- `sanity.config.ts`: passes `defaultDocumentNode` to `structureTool`
+- `sanity/schemaTypes/*.ts`: icons for the document types (bug 🐛, language ⌨️,
+  cause of death ☠️), and `EPITAPH_MAX_LENGTH = 140`, shared by the validation rule and
+  the counter
+- `app/fonts.ts` and `app/layout.tsx`: the fonts are defined once and their CSS
+  variables sit on `<html>`, so the Studio can use the site's gothic font
+- `app/(site)/layout.tsx`: now uses those shared fonts
+
+**Decisions:**
+- **The sidebar's emoji sit in each item's icon slot,** so they line up with the
+  Languages and Causes of death icons.
+- **"Buried" got ⚰️,** since 🪦 is taken by "All graves".
+- **Only "All graves" and "Suspected dead" offer "create".** A new bug always starts as
+  suspected dead, and the other statuses are only reached through the lifecycle
+  actions, so a bug created from "Zombies" would vanish from that list straight away.
+
+**Tested in the real Studio, all 22 checks passed:**
+- **Sidebar:** the order and icons are right, and the Zombies and Buried lists show
+  only those statuses.
+- **The three looks, with references resolved:** the language badge shows in its own
+  colour, and the cause of death and "Rose from “…”" appear. The Studio uses the site's
+  gothic font.
+- **Live typing, with the form and preview side by side:** the epitaph, counter, name
+  and status all update the stone within a few milliseconds of each keystroke or click.
+  Typing 150 characters shows "Epitaph: 150 / 140 · 10 too long", and switching the
+  status to Zombie makes it glow.
+
+The test bugs and the draft the typing created were deleted afterwards. A read-only
+check of the live Studio showed the right tab for all three real bugs.
+
+### What went wrong and how we fixed it
+
+- **The badges and "Rose from" didn't show up in time.** My first version resolved the
+  references with one `listenQuery` subscription. Once the draft loaded, the references
+  changed and the subscription restarted, and a restarted `listenQuery` takes a few
+  seconds to answer. Fix: resolve each reference through the Studio's preview store
+  (`useDocumentPreviewStore().observePaths`), the same cached source the Studio uses
+  for its own reference previews. After that the badges appeared within about 100ms.
+  `listenQuery` is kept only for "has a zombie risen from this grave", which depends on
+  the bug's own ID and so starts once.
+- **Fonts:** the site's gothic font only existed inside the site layout, so the Studio
+  preview would have fallen back to Georgia. Putting the font variables on the root
+  `<html>` fixed that without changing the Studio's own fonts.
+- **Test script problems, not app bugs:** a list pane is `document-list-pane`, not a
+  second `pane-content`. The status radio is easiest to click through its label.
+  `innerText` returns "RISEN", because the kicker is uppercased with CSS.
+
+### Sanity notes for the write-up
+
+- **The Studio can show any React view of a document.** `defaultDocumentNode` in
+  `structureTool` decides which tabs ("views") a document gets.
+  `S.view.form()` is the normal editor, and `S.view.component(MyComponent)` is anything
+  you like.
+- **A custom view gets the live document.** Its `document` prop holds `draft`,
+  `published` and `displayed`. `displayed` changes on every keystroke, so a preview is
+  just a React component rendering that prop.
+- **Your site's components can run inside the Studio.** The Studio is embedded in the
+  Next.js app, so the preview reuses the exact `Tombstone` component, CSS module and
+  fonts the site uses. There is no second copy to keep in sync. The Sanity CLI still
+  loads the config fine (schema validation shows 0 errors) even though it now imports
+  site code.
+- **The preview store for references:** `observePaths({_ref}, ['name', 'color'])` gives
+  a live, cached view of another document's fields. Recolour a language and the badge
+  in an open preview changes.
+- **Split view:** the Studio can show the form and the preview side by side, and it's
+  just a URL (`bug;<id>|,view=tombstone`), which is handy for screenshots.
+- **The Structure Builder turns GROQ filters into sidebar lists:**
+  `S.documentList().filter('_type == "bug" && status == $status')`, with
+  `.initialValueTemplates([])` to hide "create" where it makes no sense.

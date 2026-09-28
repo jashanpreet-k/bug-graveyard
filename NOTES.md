@@ -431,3 +431,102 @@ To test past lives beyond 3 levels, a temporary 5-grave zombie chain
   takes a JSON array and creates or replaces every document in it;
   `sanity documents get <id>` prints one document; `sanity documents delete <ids…>`
   removes them.
+
+---
+
+## First deploy (2026-09-29)
+
+### What I asked for
+
+- Create a public GitHub repo "bug-graveyard" and push `main`. When `gh` turned out
+  not to be installed, I asked Claude to do it anyway.
+- Deploy to Vercel with the CLI (I approved the login in the browser) and set the
+  environment variables.
+- Add the production URL as a Sanity CORS origin with credentials allowed.
+- Set up a Sanity webhook so content changed while nobody has the site or Studio open
+  still refreshes the live site, with the secret kept out of git.
+- Check the live site: homepage, a grave page, the 404, `/studio` sign-in, and that a
+  publish shows up. Then add this entry and commit.
+
+### What was built
+
+- **Live site:** https://bug-graveyard.vercel.app
+- **Repo:** https://github.com/jashanpreet-k/bug-graveyard (public, website set to the
+  live URL)
+- `app/api/revalidate/route.ts`: the webhook endpoint. It checks the signature against
+  `SANITY_REVALIDATE_SECRET` with next-sanity's `parseBody`, then calls
+  `revalidateTag('sanity-content', {expire: 0})`.
+- `sanity/lib/live.ts`: `sanityFetch` now adds the `sanity-content` tag to every fetch,
+  so pages added later are covered automatically.
+- `vercel.json`: sets Vercel's framework preset to Next.js.
+- `.vercelignore`: keeps `.env*` out of anything `vercel deploy` uploads.
+- `.env.local` (not committed): now also holds `SANITY_REVALIDATE_SECRET`, plus a
+  `VERCEL_OIDC_TOKEN` that the Vercel CLI added.
+- **Vercel project** `bug-graveyard` (team "Jashanpreet kaur", Hobby plan) with these
+  environment variables:
+  - `NEXT_PUBLIC_SANITY_PROJECT_ID` = `rzjmw6lg` (all environments)
+  - `NEXT_PUBLIC_SANITY_DATASET` = `production` (all environments)
+  - `SANITY_REVALIDATE_SECRET` (Production only, stored as a sensitive secret)
+- **Sanity:** CORS origin `https://bug-graveyard.vercel.app` with credentials, and a
+  webhook "Refresh the live site". It fires when a `bug`, `language` or
+  `causeOfDeath` in `production` is created, updated or deleted, and sends a signed
+  `POST` to `/api/revalidate`.
+
+### What went wrong and how we fixed it
+
+- **No `gh` CLI, and my SSH key isn't registered with GitHub.** But macOS's keychain
+  already held a GitHub login for HTTPS (scopes `repo`, `workflow`). Claude used it,
+  without ever printing it, to create the repo through GitHub's API
+  (`POST /user/repos`) and to push over HTTPS.
+- **Vercel couldn't connect the GitHub repo:** "You need to add a Login Connection to
+  your GitHub account first." So the site was deployed with `vercel deploy --prod`
+  instead. **Still open:** pushes to GitHub don't deploy automatically yet.
+- **The first deploy failed:** `No Output Directory named "dist" found`. The project
+  had been created with Framework Preset "Other". Fix: `vercel.json` with
+  `"framework": "nextjs"`.
+- **`vercel link` changed `.env.local` without asking**, adding `VERCEL_OIDC_TOKEN`.
+  Harmless, and the file is gitignored.
+- **`npx sanity api …` said "is not a sanity command".** Inside the project, `npx sanity`
+  runs the project's own Sanity 5 CLI, which has no `api` command, while
+  `npx sanity@latest api` works. This also explains the failed `sanity api` call in
+  Phase 3.
+- **`sanity hooks create` only opens a web page,** so the webhook was created through
+  Sanity's API (`POST hooks/projects/<id>`). The first try failed with `"name" is
+  required` because the body wasn't sent as JSON. Adding
+  `-H "Content-Type: application/json"` fixed it.
+- **The first batch of `vercel env add` calls quietly did nothing,** because of how
+  they were wrapped in a shell function. They were re-run one at a time, and
+  `vercel env ls` confirmed exactly one of each.
+
+**Verified on the live URL (all passed):**
+- The homepage has 3 graves.
+- A grave page is served prerendered, titled "RIP Timezone bug in scheduler".
+- The zombie page shows its past life.
+- `/grave/no-such-bug` returns 404 "This grave is empty.".
+- `/studio` shows "Choose login provider" with no CORS errors.
+- An unsigned webhook call gets 401.
+- **With nothing open,** a published bug appeared on the live homepage 5.9s later,
+  refreshed by the webhook.
+- **With a tab open,** `<SanityLive />` connected from the live origin, and the tab
+  dropped back to 3 graves 3.0s after the delete, without reloading.
+
+The publish in that test came from the CLI, which writes to Sanity exactly like the
+Studio does. I still need to try a real publish from the live Studio after signing in.
+
+### Sanity notes for the write-up
+
+- **Webhooks are signed.** Sanity signs each request with the secret (HMAC-SHA256, in
+  the `sanity-webhook-signature` header). next-sanity's `parseBody` checks it, and then
+  waits until the change is readable from Sanity's API, so a page rebuilt right away
+  doesn't fetch the old content. Each delivery took about 3.6s end to end.
+- **A webhook is a GROQ filter plus a projection.** The filter
+  `_type in ["bug", "language", "causeOfDeath"]` decides when it fires, and the
+  projection `{_id, _type}` is the whole payload.
+- **Two refresh paths, each measured.** `<SanityLive />` updates open tabs in about 3s,
+  without a reload. The webhook covers the case where nobody is connected, in about 6s.
+- **Webhook deliveries are logged.** `hooks/projects/<id>/<hookId>/attempts` shows
+  every call, with its HTTP status and response body. Both test deliveries got 200.
+- **CORS again.** The Studio and `<SanityLive />` on the Vercel domain only work
+  because that origin is allowed, with credentials for the Studio's sign-in.
+- **Which Sanity CLI runs matters.** `npx sanity` is the project's CLI (v5), and
+  `npx sanity@latest` is the newest (v8), which adds `api`, `organizations` and more.

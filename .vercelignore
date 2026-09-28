@@ -1,0 +1,5 @@
+# Files `vercel deploy` must never upload. Secrets are set in Vercel's
+# environment variables instead (see NOTES.md, "First deploy").
+.env*
+.next
+node_modules

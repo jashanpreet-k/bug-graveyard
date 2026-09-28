@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typegen": "sanity schemas extract && sanity typegen generate"
   },
   "dependencies": {
     "@sanity/image-url": "^2.1.1",

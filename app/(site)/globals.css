@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+/* Only the (site) layout imports this file, so the Studio at /studio never gets
+   Tailwind or the graveyard colours. Next.js doesn't unload global CSS on
+   client-side navigation, so never link to /studio with <Link>: use <a>. */
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-gothic);
+}
+
+@theme {
+  --color-night: #070a14;
+  --color-bone: #e9e6dc;
+  --color-moss: #8dff9f;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-night);
+  color: var(--color-bone);
+}

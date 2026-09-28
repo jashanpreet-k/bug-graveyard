@@ -1,0 +1,202 @@
+/* One grave: the stone, the earth mound under it, and an optional caption.
+   Fonts come from CSS variables with fallbacks, so it also works outside the site. */
+
+.plot {
+  --stone-top: #5b5f67;
+  --stone-mid: #3f434a;
+  --stone-base: #2e3137;
+  --engraving: #eceae4;
+  --earth: #33281f;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 18rem;
+  font-family: var(--font-geist-sans, system-ui, sans-serif);
+}
+
+.stone {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 19rem;
+  padding: 2.75rem 1.4rem 1.4rem;
+  border-radius: 50% 50% 0.4rem 0.4rem / 6.5rem 6.5rem 0.4rem 0.4rem;
+  background:
+    radial-gradient(circle at 28% 18%, rgb(255 255 255 / 0.09), transparent 42%),
+    radial-gradient(circle at 80% 70%, rgb(0 0 0 / 0.18), transparent 35%),
+    linear-gradient(180deg, var(--stone-top) 0%, var(--stone-mid) 55%, var(--stone-base) 100%);
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 0.12),
+    inset 0 -12px 24px rgb(0 0 0 / 0.35),
+    0 22px 30px -14px rgb(0 0 0 / 0.9);
+  color: var(--engraving);
+  text-align: center;
+  /* Engraved text: lit from above, so the cut's top edge is in shadow. */
+  text-shadow: 0 -1px 0 rgb(0 0 0 / 0.55);
+}
+
+/* Keep the engraving above the zombie cracks. */
+.stone > :not(.cracks) {
+  position: relative;
+}
+
+.kicker {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.name {
+  margin: 0;
+  font-family: var(--font-gothic, Georgia, serif);
+  font-size: 1.65rem;
+  font-weight: 600;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.dates {
+  margin: 0;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.epitaph {
+  flex: 1;
+  margin: 0.4rem 0 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.95rem;
+  font-style: italic;
+  line-height: 1.45;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0.4rem 0 0;
+  font-size: 0.72rem;
+  text-shadow: none;
+}
+
+.language,
+.cause {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.35);
+}
+
+.language {
+  border: 1px solid var(--language-color);
+}
+
+.language::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--language-color);
+}
+
+.mound {
+  width: 118%;
+  height: 2.2rem;
+  margin-top: -1.1rem;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 40%, #46382b 0%, var(--earth) 55%, transparent 71%);
+}
+
+.caption {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  text-align: center;
+  color: rgb(236 234 228 / 0.7);
+}
+
+/* Disturbed: the bug rose, leaving an open hole and a knocked-over stone. */
+
+.plot[data-look='disturbed'] .stone {
+  transform: rotate(-4deg);
+  transform-origin: bottom left;
+  filter: saturate(0.6);
+}
+
+.plot[data-look='disturbed'] .mound {
+  height: 2.6rem;
+  background:
+    radial-gradient(ellipse at 50% 45%, #030304 0 30%, transparent 31%),
+    radial-gradient(ellipse at 15% 55%, #4a3a2c 0 12%, transparent 13%),
+    radial-gradient(ellipse at 86% 50%, #4a3a2c 0 10%, transparent 11%),
+    radial-gradient(ellipse at 50% 40%, #46382b 0%, var(--earth) 55%, transparent 71%);
+}
+
+/* Zombie: a green-tinged, cracked stone that glows. */
+
+.plot[data-look='zombie'] {
+  --stone-top: #53604f;
+  --stone-mid: #394438;
+  --stone-base: #283027;
+}
+
+.plot[data-look='zombie'] .stone {
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 0.1),
+    inset 0 -12px 24px rgb(0 0 0 / 0.35),
+    0 0 0 1px rgb(141 255 159 / 0.3),
+    0 0 34px 2px rgb(94 255 128 / 0.28);
+  animation: zombie-glow 3.5s ease-in-out infinite;
+}
+
+.plot[data-look='zombie'] .kicker {
+  color: #8dff9f;
+  opacity: 1;
+}
+
+.cracks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  fill: none;
+  stroke: rgb(12 20 12 / 0.85);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 3px rgb(94 255 128 / 0.7));
+}
+
+.cracks path {
+  vector-effect: non-scaling-stroke;
+}
+
+@keyframes zombie-glow {
+  50% {
+    box-shadow:
+      inset 0 2px 0 rgb(255 255 255 / 0.1),
+      inset 0 -12px 24px rgb(0 0 0 / 0.35),
+      0 0 0 1px rgb(141 255 159 / 0.45),
+      0 0 48px 6px rgb(94 255 128 / 0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plot[data-look='zombie'] .stone {
+    animation: none;
+  }
+}

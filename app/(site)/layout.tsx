@@ -1,4 +1,3 @@
-import {Geist, Grenze_Gotisch} from 'next/font/google'
 import Link from 'next/link'
 
 import {Grass, Sky} from '@/components/Scenery'
@@ -7,13 +6,10 @@ import {SanityLive} from '@/sanity/lib/live'
 
 import './globals.css'
 
-const sans = Geist({variable: '--font-geist-sans', subsets: ['latin']})
-const gothic = Grenze_Gotisch({variable: '--font-gothic', subsets: ['latin']})
-
 export default function SiteLayout({children}: {children: React.ReactNode}) {
   return (
     <div
-      className={`${sans.variable} ${gothic.variable} relative isolate flex min-h-screen flex-col bg-linear-to-b from-[#060913] via-[#0d1326] to-[#161b29] font-sans text-bone antialiased`}
+      className="relative isolate flex min-h-screen flex-col bg-linear-to-b from-[#060913] via-[#0d1326] to-[#161b29] font-sans text-bone antialiased"
     >
       <Sky />
       <header className="relative z-10 mx-auto w-full max-w-7xl px-4 pt-14 pb-8 sm:px-8">

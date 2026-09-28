@@ -4,6 +4,7 @@ export const language = defineType({
   name: 'language',
   title: 'Language',
   type: 'document',
+  icon: () => '⌨️',
   fields: [
     defineField({
       name: 'name',

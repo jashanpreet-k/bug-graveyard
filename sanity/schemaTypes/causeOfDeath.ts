@@ -4,6 +4,7 @@ export const causeOfDeath = defineType({
   name: 'causeOfDeath',
   title: 'Cause of death',
   type: 'document',
+  icon: () => '☠️',
   fields: [
     defineField({
       name: 'title',

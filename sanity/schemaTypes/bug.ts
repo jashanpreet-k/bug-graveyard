@@ -2,10 +2,14 @@ import {defineField, defineType, getPublishedId} from 'sanity'
 
 import {BUG_STATUSES} from '../lib/statuses'
 
+/** Longest epitaph that fits on a tombstone. */
+export const EPITAPH_MAX_LENGTH = 140
+
 export const bug = defineType({
   name: 'bug',
   title: 'Bug',
   type: 'document',
+  icon: () => '🐛',
   groups: [
     {name: 'bug', title: 'The Bug'},
     {name: 'death', title: 'The Death'},
@@ -121,8 +125,8 @@ export const bug = defineType({
       type: 'text',
       rows: 2,
       group: 'death',
-      description: 'The words carved on the tombstone. 140 characters at most.',
-      validation: (rule) => rule.max(140),
+      description: `The words carved on the tombstone. ${EPITAPH_MAX_LENGTH} characters at most.`,
+      validation: (rule) => rule.max(EPITAPH_MAX_LENGTH),
     }),
 
     // Afterlife

@@ -4,6 +4,20 @@
 import { defineLive } from "next-sanity/live";
 import { client } from './client'
 
-export const { sanityFetch, SanityLive } = defineLive({
+/** Added to every sanityFetch, so the webhook can expire all Sanity content at once. */
+export const SANITY_CONTENT_TAG = 'sanity-content'
+
+const live = defineLive({
   client,
 });
+
+export const SanityLive = live.SanityLive
+
+// <SanityLive /> only catches changes made while someone has the site or Studio
+// open. For everything else, the Sanity webhook (app/api/revalidate) expires
+// SANITY_CONTENT_TAG, so every fetch carries it on top of its own sync tags.
+export const sanityFetch = ((options: Parameters<typeof live.sanityFetch>[0]) =>
+  live.sanityFetch({
+    ...options,
+    tags: [SANITY_CONTENT_TAG, ...(options.tags ?? [])],
+  })) as typeof live.sanityFetch

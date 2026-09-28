@@ -1,0 +1,213 @@
+# Bug Graveyard — build log
+
+Build log for my DEV Sanity Challenge entry (Path 2: vibe-code something strange).
+Bug Graveyard is a site where developers bury bugs they fixed. Each bug gets a
+tombstone, and if it comes back it rises as a zombie linked to its old grave.
+
+Stack: Next.js 16 (App Router, TypeScript, Tailwind v4) + Sanity, with the Studio
+embedded at `/studio`. Deploying on Vercel.
+
+A new entry is added at the end of every phase.
+
+---
+
+## Phase 1: Next.js + Sanity setup (2026-09-29)
+
+### What I asked for
+
+- A short phase-by-phase plan for 5 days, a folder structure, and a proposed Sanity
+  schema. No code yet.
+- Then the setup itself: create the Next.js app (App Router, TypeScript, Tailwind,
+  ESLint), initialise Sanity with the Studio embedded at `/studio`, put the project
+  ID and dataset in a gitignored `.env.local`, add `http://localhost:3000` as a CORS
+  origin, and make the first git commit.
+- Halfway through I asked Claude to do the interactive Sanity steps itself instead
+  of walking me through them.
+
+### What was built
+
+First commit: `f59e00d`, "Scaffold Next.js app with embedded Sanity Studio".
+
+Next.js scaffold (`create-next-app`, Next 16.3.6, React 19.2):
+- `package.json`, `package-lock.json`: dependencies and scripts
+- `next.config.ts`, `tsconfig.json`, `eslint.config.mjs`, `postcss.config.mjs`: config
+- `app/layout.tsx`, `app/page.tsx`, `app/globals.css`, `app/favicon.ico`: starter app
+- `public/*.svg`: starter images (to delete later)
+- `AGENTS.md`, `CLAUDE.md`: notes that Next 16 generates for AI coding agents
+
+Sanity (`sanity init`, which added `sanity` 5.31 and `next-sanity` 13.3):
+- `app/studio/[[...tool]]/page.tsx`: shows the Studio at `/studio` and every page under it
+- `sanity.config.ts`: Studio config (base path, project, dataset, schema, plugins)
+- `sanity.cli.ts`: tells `npx sanity …` commands which project and dataset to use
+- `sanity/env.ts`: reads the project ID, dataset and API version from env vars
+- `sanity/lib/client.ts`: the client the site uses to query content
+- `sanity/lib/image.ts`: `urlFor()`, which builds image URLs
+- `sanity/lib/live.ts`: `sanityFetch` and `<SanityLive />` for live content updates
+- `sanity/schemaTypes/index.ts`: the list of content types (empty so far)
+- `sanity/structure.ts`: the Studio sidebar layout (default so far)
+- `.env.local`: project ID `rzjmw6lg`, dataset `production` (gitignored, not committed)
+
+In my Sanity account:
+- A new organization, a new project `bug-graveyard` (`rzjmw6lg`) and a public
+  `production` dataset
+- CORS origins `http://localhost:3000` and `http://localhost:3333`, both allowing
+  credentials
+
+Build log:
+- `NOTES.md`: this file
+- `CLAUDE.md`: added the rule to append an entry here at the end of every phase
+
+### What went wrong and how we fixed it
+
+The build never broke. All the problems were in the setup steps.
+
+- **Sanity login can't run from an AI agent's shell as-is.** `sanity login` asks
+  which login provider to use in an interactive terminal. Fix: running
+  `sanity login --provider google` skips that question. It opened the Google
+  sign-in in my browser, I approved it, and the CLI picked up the token.
+- **A new account has no organization.** Creating a project without prompts needs
+  `--organization <id>`, but `sanity organizations list` said "No organizations
+  found". Fix: `sanity organizations create --name "…"`, then passing that ID to
+  `sanity init`.
+- **Two tools wanted to make the first commit.** `create-next-app` makes its own
+  git repo and commit by default. Fix: `--disable-git` on `create-next-app` and
+  `--no-git` on `sanity init`, so one first commit holds both setups.
+- **I couldn't check CORS credentials from the CLI.** `sanity cors list` shows only
+  the origins, not whether credentials are allowed, and it has no `--json` flag.
+  Fix: `sanity api projects/<id>/cors --global` returns the raw JSON, which showed
+  `allowCredentials: true`.
+- **`npm audit` reports 9 vulnerabilities (4 high).** They all come from packages
+  Sanity's command-line tool depends on (`adm-zip`, `js-yaml`, `uuid`, …), not from
+  the site's own code. npm's only "fix" is a major-version downgrade of `sanity` and
+  `next-sanity`. Not fixed; left as is on purpose.
+
+### Sanity notes for the write-up
+
+- **`sanity init` knows about Next.js.** It detected the Next app and did the
+  embedding itself: config files, the `/studio` route, env vars with the
+  `NEXT_PUBLIC_` prefix, and the npm installs. It also added `localhost:3000` as a
+  CORS origin with credentials, which my plan had listed as a manual step.
+- **The Studio is just a React component in the app.** `<NextStudio config={config} />`
+  sits in an ordinary Next.js route and is built as a static page. It ships to
+  Vercel with the site, with no separate hosting.
+- **The whole setup can run without prompts.** Every `sanity init` question has a
+  flag (`--project-name`, `--dataset-default`, `--nextjs-embed-studio`,
+  `--nextjs-append-env`, `--template clean`, …). The only step that needs a person
+  is approving the login in the browser. Good for AI agents and CI.
+- **The CLI can call the API directly.** `sanity api <endpoint>` makes logged-in
+  HTTP requests, which is handy when a CLI command doesn't show a detail you need.
+- **Live updates are included from the start.** `sanity/lib/live.ts` already sets up
+  `defineLive` (the Live Content API), so Studio edits can show on the site without
+  webhooks or redeploys.
+- **The API is versioned by date.** `apiVersion` defaulted to the day I set it up
+  (`2026-09-28`), which pins how the API behaves.
+- **The dataset is public for reading.** Anyone can read published documents, but
+  drafts and writes still need a token. That suits a public graveyard and lets
+  submitted bugs wait as drafts until I approve them.
+- **`init` installed `sanity@5` even though npm's newest is 6.x.** The CLI asked for
+  that major version by name. Find out why before writing it up.
+- *Not Sanity, but fun for a vibe-coding post:* Next 16's scaffold includes an
+  `AGENTS.md` that starts with "This is NOT the Next.js you know" and tells AI agents
+  to read the bundled docs before writing code.
+
+---
+
+## Phase 2: Sanity schema and seed script (2026-09-29)
+
+### What I asked for
+
+- Three schema types: `language` (name, hex colour), `causeOfDeath` (title,
+  description), and `bug`. A bug has a status that goes suspected-dead → fix-merged
+  → buried (or zombie), references to its language, its cause of death and its
+  previous life, an epitaph of at most 140 characters, read-only dates and a
+  resurrection counter.
+- A description on every field, the fields grouped into "The Bug", "The Death" and
+  "Afterlife", and a list preview with an emoji per status (💀 🩹 🪦 🧟).
+- A seed script for 5 languages (with brand colours) and 6 causes of death, how to
+  run it, and how to create a write token safely and keep it out of git.
+- Then, all done by Claude: run the seed, and write a re-runnable script that
+  creates 3 published test bugs with IDs starting `test-bug-`. Two are graves (a
+  checkout null pointer in TypeScript, a scheduler timezone bug in Python) and one
+  is a zombie that rose from the timezone bug. Check with GROQ that every reference
+  resolves, update this entry, and commit Phases 1 and 2.
+
+### What was built
+
+- `sanity/schemaTypes/language.ts`: name and a hex colour checked with a regex
+- `sanity/schemaTypes/causeOfDeath.ts`: title and description
+- `sanity/schemaTypes/bug.ts`: the bug document, with 3 field groups, a status list
+  with emoji, a "previous life" field that only shows for zombies, and the list preview
+- `sanity/schemaTypes/index.ts`: registers the three types
+- `scripts/seed.ts`: creates 5 languages and 6 causes of death in one transaction;
+  safe to re-run
+- `scripts/seed-test-bugs.ts`: creates the 3 test bugs; `-- --delete` removes them,
+  and any Studio drafts of them, in one transaction
+- `NOTES.md`: this entry
+
+Now in the `production` dataset: 11 seeded documents and 3 published test bugs. The
+zombie's fix date, burial date, killer and hours are left empty on purpose, because
+it's still walking. They get filled in once it's fixed and buried again.
+
+### What went wrong and how we fixed it
+
+- **TypeScript rejected the seed script.** `tx.createIfNotExists(doc)` guessed its
+  type from the first document (a language), so it complained that the causes of
+  death were "missing the following properties … name, color". Fix: give the list
+  one shared type, `Array<{_id: string; _type: string} & Record<string, unknown>>`.
+- **Would `sanity exec` read `.env.local`?** The seed imports `sanity/env`, which
+  throws if the env vars are missing. A throwaway read-only script showed that it
+  does read them, finds project `rzjmw6lg`, and has no token unless you pass
+  `--with-user-token`.
+- **The seed ran without problems, and re-running is safe.** I ran it myself: all
+  11 documents share the `_createdAt` 2026-09-28T19:08:42Z because they came from
+  one transaction. Claude's second run printed "skipped (exists)" for all 11.
+- **`path("test-bug-*")` matched nothing.** The first check query returned `[]` and
+  a count of 0, even though looking up the zombie by its exact `_id` worked. GROQ's
+  `path()` wildcards only match whole dot-separated segments (as in `drafts.**`), not
+  the start of an ID. That meant `--delete` would have quietly deleted nothing. Fix:
+  `string::startsWith(_id, "test-bug-")`. Then `--delete` was run for real (3
+  deleted, and "nothing to delete" the second time), and the bugs were recreated.
+- **Still open: the read-only fields.** `fixMergedAt`, `buriedAt` and
+  `timesResurrected` can't be edited in the Studio, and nothing updates them when the
+  status changes. For now only scripts can set them, which is how the test bugs got
+  theirs. That needs automation in a later phase.
+
+### Sanity notes for the write-up
+
+- **The schema is TypeScript in the repo.** The Studio's forms are generated from it
+  and it's versioned with git. `npx sanity schemas validate` checks it from the
+  terminal: 0 errors, 0 warnings.
+- **Field groups become tabs in the Studio**, and one field can sit in several of
+  them. `status` shows under both "The Death" and "Afterlife".
+- **Fields can appear and disappear.** With `hidden: ({document}) =>
+  document?.status !== 'zombie'`, "Previous life" only shows once a bug is marked as
+  a zombie, and it updates while you edit.
+- **Reference pickers take a GROQ filter.** The "Previous life" picker uses
+  `!(_id in [$id, $draftId])` so a bug can't be its own previous life. A draft is a
+  separate document whose ID starts with `drafts.`, so both IDs have to be excluded.
+- **Previews can read through references.** `select: {language: 'language.name'}`
+  gets the name from the linked language document, so the list shows
+  "🪦 Buried · TypeScript".
+- **A dot in a document ID makes it private.** Sanity treats a dotted ID as a
+  private path (that's how `drafts.` works), and a public dataset won't serve it
+  without a token. So the seed uses IDs like `language-typescript`.
+- **`sanity exec` runs a TypeScript script with your CLI login.** Add
+  `--with-user-token` and there's no API token to create, no ts-node and no dotenv;
+  it loads `.env.local` itself.
+- **Validation lives in the schema:** a regex for the hex colour, `max(140)` for the
+  epitaph, `min(0).integer()` for the counter. The Studio shows these errors inline
+  as you type.
+- **`readOnly` only affects the Studio; the API ignores it.** The test-bug script
+  wrote `fixMergedAt`, `buriedAt` and `timesResurrected` through the API with no
+  complaint.
+- **A document without a `drafts.` prefix is published straight away.** Anyone can
+  read it: a plain `curl` to the public API with no token returned all 3 test bugs
+  with their references followed.
+- **Looking up zombies from their grave takes one line of GROQ.**
+  `*[_type == "bug" && previousLife._ref == ^._id]` run from a grave returns the
+  zombies that rose from it, so the "disturbed grave" look needs no extra field.
+- **References are checked when the whole transaction commits**, so the grave and its
+  zombie can be created together. Sanity won't delete a document that another one
+  still references, so `--delete` removes all the test bugs in one transaction.
+- **`path()` wildcards match whole ID segments, not prefixes.** Use
+  `string::startsWith` to find IDs by prefix.

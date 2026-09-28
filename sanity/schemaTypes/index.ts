@@ -1,5 +1,9 @@
 import { type SchemaTypeDefinition } from 'sanity'
 
+import { bug } from './bug'
+import { causeOfDeath } from './causeOfDeath'
+import { language } from './language'
+
 export const schema: { types: SchemaTypeDefinition[] } = {
-  types: [],
+  types: [bug, language, causeOfDeath],
 }

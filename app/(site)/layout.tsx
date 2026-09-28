@@ -18,9 +18,10 @@ export default function SiteLayout({children}: {children: React.ReactNode}) {
       <Sky />
       <header className="relative z-10 mx-auto w-full max-w-7xl px-4 pt-14 pb-8 sm:px-8">
         <Link href="/" className="inline-block focus-visible:outline-2 focus-visible:outline-moss">
-          <h1 className="font-display text-5xl font-bold tracking-wide text-bone drop-shadow-[0_2px_12px_rgb(0_0_0/0.8)] sm:text-7xl">
+          {/* Not a heading: each page's own <h1> says what the page is about. */}
+          <span className="block font-display text-5xl font-bold tracking-wide text-bone drop-shadow-[0_2px_12px_rgb(0_0_0/0.8)] sm:text-7xl">
             Bug Graveyard
-          </h1>
+          </span>
         </Link>
         <p className="mt-3 max-w-xl text-base text-bone/75 sm:text-lg">
           Here lie the bugs we fixed. Most of them stayed dead.

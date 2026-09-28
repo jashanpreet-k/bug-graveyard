@@ -242,6 +242,77 @@ export type GRAVEYARD_QUERY_RESULT = Array<{
 }>;
 
 // Source: sanity/lib/queries.ts
+// Variable: GRAVE_QUERY
+// Query: *[_type == "bug" && slug.current == $slug][0] {    _id,    name,    "slug": slug.current,    status,    severity,    epitaph,    killedBy,    hoursToKill,    bornAt,    fixMergedAt,    buriedAt,    timesResurrected,    language->{name, color},    causeOfDeath->{title, description},    "previousLife": previousLife->{      name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,      "previousLife": previousLife->{        name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,        "previousLife": previousLife->{          name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,          "hasOlderLives": defined(previousLife)        }      }    },    "risen": *[_type == "bug" && previousLife._ref == ^._id] | order(bornAt asc) {      name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,      "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0    }  }
+export type GRAVE_QUERY_RESULT = {
+  _id: string;
+  name: string;
+  slug: string;
+  status: "buried" | "fix-merged" | "suspected-dead" | "zombie";
+  severity: "critical" | "low" | "medium" | null;
+  epitaph: string | null;
+  killedBy: string | null;
+  hoursToKill: number | null;
+  bornAt: string | null;
+  fixMergedAt: string | null;
+  buriedAt: string | null;
+  timesResurrected: number | null;
+  language: {
+    name: string;
+    color: string | null;
+  } | null;
+  causeOfDeath: {
+    title: string;
+    description: string | null;
+  } | null;
+  previousLife: {
+    name: string;
+    slug: string;
+    epitaph: string | null;
+    status: "buried" | "fix-merged" | "suspected-dead" | "zombie";
+    bornAt: string | null;
+    fixMergedAt: string | null;
+    buriedAt: string | null;
+    previousLife: {
+      name: string;
+      slug: string;
+      epitaph: string | null;
+      status: "buried" | "fix-merged" | "suspected-dead" | "zombie";
+      bornAt: string | null;
+      fixMergedAt: string | null;
+      buriedAt: string | null;
+      previousLife: {
+        name: string;
+        slug: string;
+        epitaph: string | null;
+        status: "buried" | "fix-merged" | "suspected-dead" | "zombie";
+        bornAt: string | null;
+        fixMergedAt: string | null;
+        buriedAt: string | null;
+        hasOlderLives: false | true;
+      } | null;
+    } | null;
+  } | null;
+  risen: Array<{
+    name: string;
+    slug: string;
+    epitaph: string | null;
+    status: "buried" | "fix-merged" | "suspected-dead" | "zombie";
+    bornAt: string | null;
+    fixMergedAt: string | null;
+    buriedAt: string | null;
+    disturbed: boolean;
+  }>;
+} | null;
+
+// Source: sanity/lib/queries.ts
+// Variable: GRAVE_SLUGS_QUERY
+// Query: *[_type == "bug" && defined(slug.current)] {"slug": slug.current}
+export type GRAVE_SLUGS_QUERY_RESULT = Array<{
+  slug: string;
+}>;
+
+// Source: sanity/lib/queries.ts
 // Variable: GRAVEYARD_FILTERS_QUERY
 // Query: {  "languages": *[_type == "language"] | order(name asc) {    name,    color,    "count": count(*[_type == "bug" && language._ref == ^._id])  },  "causes": *[_type == "causeOfDeath"] | order(title asc) {    title,    "count": count(*[_type == "bug" && causeOfDeath._ref == ^._id])  }}
 export type GRAVEYARD_FILTERS_QUERY_RESULT = {
@@ -261,6 +332,8 @@ import "@sanity/client";
 declare module "@sanity/client" {
   interface SanityQueries {
     '\n  *[_type == "bug"\n    && (!defined($language) || language->name == $language)\n    && (!defined($cause) || causeOfDeath->title == $cause)\n  ] | order(coalesce(buriedAt, fixMergedAt, bornAt) desc, name asc) {\n    _id,\n    name,\n    "slug": slug.current,\n    status,\n    epitaph,\n    bornAt,\n    fixMergedAt,\n    buriedAt,\n    language->{name, color},\n    causeOfDeath->{title},\n    "previousLife": previousLife->{name},\n    "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0\n  }\n': GRAVEYARD_QUERY_RESULT;
+    '\n  *[_type == "bug" && slug.current == $slug][0] {\n    _id,\n    name,\n    "slug": slug.current,\n    status,\n    severity,\n    epitaph,\n    killedBy,\n    hoursToKill,\n    bornAt,\n    fixMergedAt,\n    buriedAt,\n    timesResurrected,\n    language->{name, color},\n    causeOfDeath->{title, description},\n    "previousLife": previousLife->{\n      name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n      "previousLife": previousLife->{\n        name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n        "previousLife": previousLife->{\n          name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n          "hasOlderLives": defined(previousLife)\n        }\n      }\n    },\n    "risen": *[_type == "bug" && previousLife._ref == ^._id] | order(bornAt asc) {\n      name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n      "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0\n    }\n  }\n': GRAVE_QUERY_RESULT;
+    '\n  *[_type == "bug" && defined(slug.current)] {"slug": slug.current}\n': GRAVE_SLUGS_QUERY_RESULT;
     '{\n  "languages": *[_type == "language"] | order(name asc) {\n    name,\n    color,\n    "count": count(*[_type == "bug" && language._ref == ^._id])\n  },\n  "causes": *[_type == "causeOfDeath"] | order(title asc) {\n    title,\n    "count": count(*[_type == "bug" && causeOfDeath._ref == ^._id])\n  }\n}': GRAVEYARD_FILTERS_QUERY_RESULT;
   }
 }

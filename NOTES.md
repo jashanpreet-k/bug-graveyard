@@ -326,3 +326,108 @@ it's still walking. They get filled in once it's fixed and buried again.
   instead of Tailwind because the Studio doesn't load the site's CSS.
 - *Not Sanity:* Next.js doesn't unload global CSS on client-side navigation, so the
   site must never use `<Link>` to go to `/studio`; a plain `<a>` does a full page load.
+
+---
+
+## Phase 4: The single grave page (2026-09-29)
+
+### What I asked for
+
+- A page for each grave at `/grave/[slug]`, inside the `(site)` group. A GROQ query by
+  slug that returns every bug field, the language, the cause of death, the previous
+  life chain up to 3 levels deep (name, slug, epitaph, dates, status), and every zombie
+  that rose from this bug.
+- A big tombstone at the top (the same component), then the details: cause of death,
+  hours to kill, severity, killed by, and the born, fix merged and buried dates.
+- A "Past lives" section showing the chain of previous graves as small tombstones,
+  oldest first, each linking to its own page, with "…and older lives" when the chain
+  goes back more than 3 levels. A "Risen from this grave" section when zombies came
+  from it.
+- Every tombstone on the homepage links to its grave page.
+- `generateStaticParams`, and `generateMetadata` with the title "RIP <name>" and the
+  epitaph as the description.
+- A custom not-found page for unknown slugs: "This grave is empty."
+- Use `sanityFetch` so live updates keep working. Build, lint and type-check, then add
+  this entry and commit.
+
+### What was built
+
+- `app/(site)/grave/[slug]/page.tsx`: the grave page. It has the big stone (the page's
+  `<h1>`), a "Death certificate" list of details, "Past lives" and "Risen from this
+  grave". `generateStaticParams` prerenders every grave, and `generateMetadata` sets
+  the title and description. React's `cache()` makes the metadata and the page share
+  one fetch.
+- `app/(site)/grave/[slug]/not-found.tsx`: "This grave is empty." with a link back
+- `components/Tombstone.tsx` and `.module.css`: three new props. `size` is
+  mini/regular/large. `href` makes the whole stone a link, which lifts on hover and
+  gets a green focus ring. `headingLevel` lets the grave page use the name as its
+  `<h1>`. The cracks now sit behind the text using `z-index: -1`, and the earth mound
+  is limited to the screen width.
+- `lib/graves.ts`: shared helpers `lookFor`, `diedAt`, `statusLabel` and `formatDate`
+  (previously spread across the homepage and the Tombstone)
+- `sanity/lib/statuses.ts`: the status list, moved out of the schema file (see below)
+- `sanity/lib/queries.ts`: `GRAVE_QUERY` and `GRAVE_SLUGS_QUERY`; `sanity/types.ts`
+  regenerated
+- `app/(site)/page.tsx`: every tombstone links to `/grave/<slug>`; a screen-reader-only
+  `<h1>`
+- `app/(site)/layout.tsx`: the site title is no longer an `<h1>`, because each page now
+  has its own
+
+To test past lives beyond 3 levels, a temporary 5-grave zombie chain
+(`test-bug-chain-1` to `-5`) was published, checked and deleted again.
+
+### What went wrong and how we fixed it
+
+- **The grave page was 16px too wide on phones.** Phone emulation measured the page as
+  406px wide on a 390px screen. The big stone fills the column (358px), and its earth
+  mound is 118% of that (422px). Fix: the mound's `max-width` is
+  `calc(100vw - 1rem)`. It then measured 390 against 390.
+- **The 404 page's title.** `generateMetadata` returns "This grave is empty" for an
+  unknown slug, but the HTML `<head>` still says "Bug Graveyard". On a 404, Next.js
+  sends the page's metadata later in the stream rather than in the head. A browser does
+  end up with the right title (`document.title` in headless Chrome was "This grave is
+  empty"), and the page is marked `noindex` anyway, so this was left alone.
+- **The past-lives arrows didn't line up** with the stones and the "this grave" label.
+  Fix: the whole row is centred together.
+- **The homepage was stale even after a rebuild.** The test chain was published with no
+  browser open, and afterwards the homepage showed 3 graves instead of 8, even after
+  `next build`. Next.js keeps its fetch cache in `.next/cache`, and that survives
+  rebuilds. This is the gap from Phase 3 again. Publishing with `/studio` open updated
+  it in 1.8s.
+- **A deleted grave came back after a server restart.** `/grave/test-bug-live-new`
+  returned 200 after its bug had been deleted and the server restarted. `next start`
+  saves pages rendered on demand as files (`.next/server/app/grave/*.html`), but the
+  "out of date" markers from `<SanityLive />` are kept in memory, so after a restart
+  the old file was served again. This only affects `next start` on a laptop: the next
+  `next build` replaced those files, leaving exactly the 3 real graves.
+- **Test script problems, not app bugs:** `sanity documents create` rejected
+  newline-delimited JSON and needed a JSON array instead. Node's `fetch` sometimes
+  failed with `ECONNRESET` after long pauses, because it reused a connection the server
+  had already closed, so the script now retries.
+- **Still open:** content changed while neither the site nor the Studio is open still
+  needs a Sanity webhook to reach the cache (planned for the Vercel deploy).
+
+### Sanity notes for the write-up
+
+- **One GROQ query can follow a chain of references:**
+  `previousLife->{…, previousLife->{…, previousLife->{…}}}`. GROQ has no recursion, so
+  the depth is fixed in the query. The deepest level asks
+  `"hasOlderLives": defined(previousLife)` to know whether to show "…and older lives".
+- **TypeGen understands queries built from pieces.** The fields for one past life are a
+  plain string constant, inserted three times into `GRAVE_QUERY` with `${PAST_LIFE}`.
+  TypeGen still resolved it and generated full types for all three levels.
+- **Looking up zombies from their grave:**
+  `"risen": *[_type == "bug" && previousLife._ref == ^._id]` lists the zombies that rose
+  from a grave, each with its own "disturbed" flag.
+- **Live updates reach prerendered pages.** Grave pages are built as static HTML with
+  `generateStaticParams`, yet with `/studio` open an edit showed up in 2.0s. A slug that
+  had been a 404 became a page in 2.6s, and a deleted grave became a 404 again. This
+  works because `sanityFetch` tags each fetch with Sanity's sync tags, and clearing a
+  tag also clears the pages built from it.
+- **Keep `sanity` out of the site's code.** Schema files import from `sanity`, the whole
+  Studio package, so anything the site shares with the schema (like the status list)
+  lives in its own plain module.
+- **Throwaway test data from the CLI:** `sanity documents create file.json --replace`
+  takes a JSON array and creates or replaces every document in it;
+  `sanity documents get <id>` prints one document; `sanity documents delete <ids…>`
+  removes them.

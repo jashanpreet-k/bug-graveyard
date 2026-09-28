@@ -1,4 +1,7 @@
+import Link from 'next/link'
 import type {CSSProperties} from 'react'
+
+import {formatDate} from '@/lib/graves'
 
 import styles from './Tombstone.module.css'
 
@@ -6,6 +9,8 @@ import styles from './Tombstone.module.css'
 // correctly inside Sanity Studio, which doesn't load the site's Tailwind CSS.
 
 export type TombstoneLook = 'resting' | 'disturbed' | 'zombie'
+
+export type TombstoneSize = 'mini' | 'regular' | 'large'
 
 export type TombstoneProps = {
   name: string
@@ -17,19 +22,11 @@ export type TombstoneProps = {
   /** For a zombie: the name of the grave it rose from. */
   risenFrom?: string | null
   look?: TombstoneLook
-}
-
-const dateFormat = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
-
-// Sanity dates are "YYYY-MM-DD", which JavaScript reads as UTC midnight. Format
-// them in UTC too, or anyone west of Greenwich sees every bug die a day early.
-function formatDate(date?: string | null) {
-  return date ? dateFormat.format(new Date(date)) : null
+  size?: TombstoneSize
+  /** Makes the whole stone a link, e.g. to the grave's own page. */
+  href?: string
+  /** Use 1 when this stone is what the page is about. */
+  headingLevel?: 1 | 2 | 3
 }
 
 export function Tombstone({
@@ -41,18 +38,30 @@ export function Tombstone({
   causeOfDeath,
   risenFrom,
   look = 'resting',
+  size = 'regular',
+  href,
+  headingLevel = 2,
 }: TombstoneProps) {
+  const Heading = `h${headingLevel}` as const
   const born = formatDate(bornAt) ?? '?'
   const died = formatDate(diedAt) ?? (look === 'zombie' ? 'still walking' : '?')
 
   return (
-    <article className={styles.plot} data-look={look}>
+    <article className={styles.plot} data-look={look} data-size={size}>
       <div className={styles.stone}>
         {look === 'zombie' && <Cracks />}
         <p className={styles.kicker}>
           {look === 'zombie' ? 'Risen' : look === 'disturbed' ? <s>R.I.P.</s> : 'R.I.P.'}
         </p>
-        <h2 className={styles.name}>{name}</h2>
+        <Heading className={styles.name}>
+          {href ? (
+            <Link href={href} className={styles.link}>
+              {name}
+            </Link>
+          ) : (
+            name
+          )}
+        </Heading>
         <p className={styles.dates}>
           <time dateTime={bornAt ?? undefined}>{born}</time>
           {' – '}

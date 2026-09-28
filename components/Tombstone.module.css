@@ -41,11 +41,6 @@
   text-shadow: 0 -1px 0 rgb(0 0 0 / 0.55);
 }
 
-/* Keep the engraving above the zombie cracks. */
-.stone > :not(.cracks) {
-  position: relative;
-}
-
 .kicker {
   margin: 0;
   font-size: 0.7rem;
@@ -114,6 +109,8 @@
 
 .mound {
   width: 118%;
+  /* A full-width stone on a phone would push its mound past the screen edges. */
+  max-width: calc(100vw - 1rem);
   height: 2.2rem;
   margin-top: -1.1rem;
   border-radius: 50%;
@@ -169,6 +166,8 @@
 
 .cracks {
   position: absolute;
+  /* Below the text but above the stone's background: .stone is a stacking context. */
+  z-index: -1;
   inset: 0;
   width: 100%;
   height: 100%;
@@ -198,5 +197,114 @@
 @media (prefers-reduced-motion: reduce) {
   .plot[data-look='zombie'] .stone {
     animation: none;
+  }
+}
+
+/* Linked stones: the name's link stretches over the whole stone. */
+
+.link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.link:focus-visible {
+  outline: none;
+}
+
+.plot:has(.link) .stone {
+  transition: translate 200ms ease;
+}
+
+.plot:has(.link:hover) .stone {
+  translate: 0 -4px;
+}
+
+.plot:has(.link:focus-visible) .stone {
+  outline: 2px solid #8dff9f;
+  outline-offset: 4px;
+}
+
+/* Sizes */
+
+.plot[data-size='large'] {
+  max-width: 24rem;
+}
+
+.plot[data-size='large'] .stone {
+  min-height: 25rem;
+  padding: 3.5rem 2rem 2rem;
+  gap: 0.8rem;
+  border-radius: 50% 50% 0.5rem 0.5rem / 8.5rem 8.5rem 0.5rem 0.5rem;
+}
+
+.plot[data-size='large'] .name {
+  font-size: 2.3rem;
+}
+
+.plot[data-size='large'] .dates {
+  font-size: 0.95rem;
+}
+
+.plot[data-size='large'] .epitaph {
+  font-size: 1.15rem;
+}
+
+.plot[data-size='large'] .meta,
+.plot[data-size='large'] .caption {
+  font-size: 0.85rem;
+}
+
+.plot[data-size='mini'] {
+  max-width: 10rem;
+}
+
+.plot[data-size='mini'] .stone {
+  min-height: 11rem;
+  padding: 1.6rem 0.75rem 0.9rem;
+  gap: 0.35rem;
+  border-radius: 50% 50% 0.3rem 0.3rem / 3.75rem 3.75rem 0.3rem 0.3rem;
+}
+
+.plot[data-size='mini'] .kicker {
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+}
+
+.plot[data-size='mini'] .name {
+  font-size: 1.05rem;
+}
+
+.plot[data-size='mini'] .dates {
+  font-size: 0.65rem;
+}
+
+.plot[data-size='mini'] .epitaph {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 0.75rem;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.plot[data-size='mini'] .mound {
+  height: 1.3rem;
+  margin-top: -0.65rem;
+}
+
+/* The page around a mini stone already explains how it relates. */
+.plot[data-size='mini'] .caption {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plot:has(.link) .stone {
+    transition: none;
   }
 }

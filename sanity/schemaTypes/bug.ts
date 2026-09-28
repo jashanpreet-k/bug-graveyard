@@ -1,13 +1,6 @@
 import {defineField, defineType, getPublishedId} from 'sanity'
 
-export const BUG_STATUSES = [
-  {value: 'suspected-dead', title: 'Suspected dead', emoji: '💀'},
-  {value: 'fix-merged', title: 'Fix merged', emoji: '🩹'},
-  {value: 'buried', title: 'Buried', emoji: '🪦'},
-  {value: 'zombie', title: 'Zombie', emoji: '🧟'},
-] as const
-
-export type BugStatus = (typeof BUG_STATUSES)[number]['value']
+import {BUG_STATUSES} from '../lib/statuses'
 
 export const bug = defineType({
   name: 'bug',

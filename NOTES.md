@@ -530,3 +530,130 @@ Studio does. I still need to try a real publish from the live Studio after signi
   because that origin is allowed, with credentials for the Studio's sign-in.
 - **Which Sanity CLI runs matters.** `npx sanity` is the project's CLI (v5), and
   `npx sanity@latest` is the newest (v8), which adds `api`, `organizations` and more.
+
+---
+
+## Phase 5: Lifecycle document actions (2026-09-29)
+
+### What I asked for
+
+- Three custom Studio actions on bugs, registered through `document.actions` in
+  `sanity.config.ts`, keeping Sanity's own Publish, Delete and so on:
+  - **🩹 Mark fix merged**, enabled for suspected-dead bugs: status becomes fix-merged,
+    `fixMergedAt` becomes today, and the change is published.
+  - **🪦 Declare buried**, enabled once a fix has held for 7 days; otherwise the label
+    says how long is left ("Can bury in 4 days"). Status becomes buried, `buriedAt`
+    becomes today, and the change is published.
+  - **🧟 Report resurrection**, for fix-merged or buried bugs. After a confirm dialog
+    ("Are you sure? This bug will rise from its grave.") it creates a new zombie bug:
+    `previousLife` points at this bug, `timesResurrected` goes up by one, the name
+    becomes "<name> (Zombie #n)", with the same language and cause, a unique slug and
+    today as `bornAt`. Then it opens the zombie so I can write its epitaph.
+- UTC dates. Drafts handled properly: act on the published document and leave no
+  stray drafts. Zombies go through the same lifecycle, so zombies of zombies work. The
+  7-day rule in a single constant.
+- Test it end to end with temporary bugs, check that the site updates live, run build,
+  lint and type-check, add this entry, commit and deploy. Explain document actions for
+  the write-up.
+
+### What was built
+
+- `sanity/actions/lifecycle.tsx`: the three actions
+- `sanity/lib/lifecycle.ts`: `BURIAL_WAIT_DAYS = 7` and small helpers: `todayUTC`,
+  `daysBetween`, `daysUntilBurial`, `zombieName`, `slugify`. It doesn't import
+  `sanity`, so the site could use it too.
+- `sanity.config.ts`: `document.actions` adds the three actions right after Publish,
+  for bugs only
+
+**Decisions that go beyond the brief:**
+- **"Mark fix merged" also works on a walking zombie.** Without that, a zombie could
+  never start its own lifecycle.
+- **The actions write straight to the published document,** in one change guarded by
+  its revision (`ifRevisionId`). There is no draft step, so nothing gets left behind.
+  They are disabled while the bug has unpublished edits ("Publish or discard your
+  changes first"), because that draft would later overwrite the new status.
+- **The zombie is created already published,** so it appears on the site straight
+  away, then opens in the Studio. Writing its epitaph is then an ordinary edit and
+  publish.
+- **A grave only rises once.** "Report resurrection" is disabled on a grave a zombie
+  already came from ("It already rose as …"), and this is checked again at the moment
+  of confirming. The next resurrection belongs on the zombie's own grave, which keeps
+  every chain a single line.
+- **The zombie copies the language and cause of death, but not the severity.** Its
+  slug gets `-2`, `-3` and so on if the name is already taken.
+
+**End-to-end test:** a production build, with headless Chrome clicking the real Studio
+buttons. Five temporary bugs covered every situation, and **all 34 checks passed**:
+- **Enabled/disabled states** in each status, including "🪦 Can bury in 7 days" right
+  after a fix and "Can bury in 4 days" for a fix 3 days old.
+- **Mark fix merged and Declare buried** wrote today's UTC date, and no drafts were
+  left behind.
+- **Cancel in the confirm dialog** created nothing.
+- **Unpublished edits** disabled all three actions.
+- **Resurrecting a buried bug** created "(Zombie #1)" with the correct fields and a
+  unique slug, and opened it in the Studio.
+- **A grave tab that was already open** showed "Risen from this grave" 1.4s later,
+  without reloading.
+- **The old grave could not rise twice.**
+- **A zombie of a zombie** was named "(Zombie #2)", not "(Zombie #1) (Zombie #2)", and
+  its page lists both past lives, oldest first.
+
+Every temporary document was deleted afterwards. After the deploy, a read-only check of
+the live Studio showed the right menu for each of the three real bugs.
+
+### What went wrong and how we fixed it
+
+- **"Report resurrection" stayed disabled right after another action.** My first
+  version disabled it while it was still checking whether the grave had already
+  risen. Sanity re-creates the action component whenever the document changes, so
+  each change restarted that check, and the button was disabled for a second or two.
+  The test clicked during that window, and the confirm dialog never opened. Fix: don't
+  block while checking. The button is only disabled once a zombie is known to exist,
+  and the final check happens when you confirm.
+- **Test script problem, not an app bug:** headless Chrome slows down tabs in the
+  background, so the Studio stalled after the test opened a second tab.
+  `Page.bringToFront` fixed it.
+- **Signing the headless Studio in:** the Studio keeps its token in `localStorage`
+  under `__studio_auth_token_<projectId>`. The test put my CLI login token there
+  before the page loaded, in a throwaway Chrome profile, and never printed it.
+- **Still open: backfilling old bugs.** `fixMergedAt`, `buriedAt` and
+  `timesResurrected` are read-only in the Studio, and the actions always use today. So
+  a bug fixed months ago can't be given its real dates by hand; only a script or the
+  API can do that.
+
+### Sanity notes for the write-up
+
+**How document actions work, in plain words:**
+- The buttons at the bottom of a document in Sanity Studio (Publish, Duplicate, Delete,
+  and so on) are all *document actions*, and you can add your own.
+- **An action is a small React component.** Sanity renders it for the open document
+  and gives it the document's current state: the published version, any unpublished
+  draft, its ID and type. It returns a description of a button: a label, whether it's
+  disabled, a tooltip, what happens on click, and optionally a dialog such as a
+  confirm box.
+- **It updates itself.** Because it's a component, Sanity re-renders it whenever the
+  document changes. That's how "Can bury in 4 days" and the enabled/disabled states
+  stay correct without any refresh logic.
+- **It can use the Studio's hooks:** `useClient` to write data, `useRouter` to open
+  another document, and `useDocumentStore().listenQuery` for a live GROQ subscription.
+- **It runs as the signed-in person.** The action runs in the browser with that
+  person's Sanity permissions, so there's no API token in the code.
+- **You register actions in `sanity.config.ts`.** `document.actions` is a function
+  that receives Sanity's default list plus some context (which type of document, and
+  so on) and returns the list to show. The first one becomes the big button; the rest
+  go in the "…" menu. Here the lifecycle actions go right after Publish, and only for
+  bugs.
+
+**Other things worth mentioning:**
+- **Actions can own read-only fields.** Marking fields `readOnly` stops people editing
+  them by hand while code can still set them. That turns the dates and the
+  resurrection counter into a record of what actually happened.
+- **Drafts are separate documents.** Editing creates a `drafts.<id>` copy, and
+  publishing copies it over the real one. These actions skip that step and change the
+  published document directly, with `ifRevisionId` (the write fails if someone else
+  changed the bug first).
+- **The built-in dialogs are declarative:** `dialog: {type: 'confirm', message,
+  onConfirm, onCancel}`, and `navigateIntent('edit', {id, type})` opens a document.
+- **The whole lifecycle runs on the same live pipeline as the site.** Clicking an
+  action updates the homepage and grave pages within about a second, through the
+  Studio's `<SanityLive />` and the webhook.

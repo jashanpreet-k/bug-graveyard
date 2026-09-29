@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { openGraph, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/metadata";
+
 import { gothic, sans } from "./fonts";
 
 // Shared by the site and the embedded Studio, so it stays bare: all graveyard
@@ -7,8 +9,11 @@ import { gothic, sans } from "./fonts";
 // Studio's Tombstone preview can use the site's fonts.
 
 export const metadata: Metadata = {
-  title: "Bug Graveyard",
-  description: "Where fixed bugs are laid to rest, and where the ones that come back rise as zombies.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  openGraph: openGraph(SITE_NAME, SITE_DESCRIPTION),
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

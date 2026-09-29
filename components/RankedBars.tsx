@@ -15,7 +15,18 @@ export type RankedItem = {
 // it (no legend), every value is printed at its bar's tip (nothing hides behind
 // hover), and each row links somewhere useful. Bars follow the chart specs: thin,
 // rounded at the data end, square at the baseline.
-export function RankedBars({items, color, numbered = false}: {items: RankedItem[]; color: string; numbered?: boolean}) {
+export function RankedBars({
+  items,
+  color,
+  numbered = false,
+  compact = false,
+}: {
+  items: RankedItem[]
+  color: string
+  numbered?: boolean
+  /** Label and bar on one line from the sm breakpoint up, for short labels. */
+  compact?: boolean
+}) {
   const max = Math.max(...items.map((item) => item.value), 1)
 
   return (
@@ -26,8 +37,10 @@ export function RankedBars({items, color, numbered = false}: {items: RankedItem[
             href={item.href}
             className="flex gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-bone/5 focus-visible:outline-2 focus-visible:outline-moss"
           >
-            {numbered && <span className="w-4 shrink-0 text-right text-sm text-bone/50">{index + 1}</span>}
-            <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+            {numbered && <span className="w-4 shrink-0 text-right text-sm text-bone/60">{index + 1}</span>}
+            <span
+              className={`flex min-w-0 flex-1 flex-col gap-1.5 ${compact ? 'sm:grid sm:grid-cols-[12rem_1fr] sm:items-center sm:gap-3' : ''}`}
+            >
               <span className="flex items-center gap-2 text-bone">
                 {item.marker && (
                   <span className="size-2 shrink-0 rounded-full" style={{background: item.marker}} aria-hidden />

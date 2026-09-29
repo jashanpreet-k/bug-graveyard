@@ -57,3 +57,21 @@ export function pastLivesOf(bug: ThreeLivesBack) {
     hasOlderLives: three?.hasOlderLives ?? false,
   }
 }
+
+export type StoneShape = 'dome' | 'tall' | 'flat' | 'low'
+
+export type StoneStyle = {shape: StoneShape; height: number; width: number; tilt: number}
+
+// A little variety per grave so the graveyard looks natural. It comes from a hash
+// of the bug's ID, so a grave always gets the same stone and nothing jumps on reload.
+export function stoneStyleFor(id: string): StoneStyle {
+  let hash = 2166136261 // FNV-1a
+  for (const char of id) hash = Math.imul(hash ^ char.codePointAt(0)!, 16777619) >>> 0
+  const pick = <T,>(options: readonly T[], shift: number) => options[(hash >>> shift) % options.length]
+  return {
+    shape: pick(['dome', 'tall', 'flat', 'low'] as const, 0),
+    height: pick([-1.5, -0.75, 0, 0.75, 1.5], 5), // rem added to the regular height
+    width: pick([17, 17.5, 18, 18.5], 10), // rem
+    tilt: pick([-1.2, -0.6, 0, 0.6, 1.2], 15), // degrees, resting stones only
+  }
+}

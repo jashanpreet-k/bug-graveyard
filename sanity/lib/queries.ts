@@ -99,6 +99,22 @@ export const LEADERBOARD_QUERY = defineQuery(`{
   }
 }`)
 
+// What a grave's share image shows.
+export const GRAVE_OG_QUERY = defineQuery(`
+  *[_type == "bug" && slug.current == $slug][0] {
+    name,
+    epitaph,
+    status,
+    bornAt,
+    fixMergedAt,
+    buriedAt,
+    "language": language->name,
+    "causeOfDeath": causeOfDeath->title,
+    "risenFrom": previousLife->name,
+    "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0
+  }
+`)
+
 // Every grave's slug, for prerendering the grave pages at build time.
 export const GRAVE_SLUGS_QUERY = defineQuery(`
   *[_type == "bug" && defined(slug.current)] {"slug": slug.current}

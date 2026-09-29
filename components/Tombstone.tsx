@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import type {CSSProperties} from 'react'
 
-import {formatDate} from '@/lib/graves'
+import {formatDate, type StoneStyle} from '@/lib/graves'
 
 import styles from './Tombstone.module.css'
 
@@ -27,6 +27,8 @@ export type TombstoneProps = {
   href?: string
   /** Use 1 when this stone is what the page is about. */
   headingLevel?: 1 | 2 | 3
+  /** Shape, size and tilt for a regular stone; see stoneStyleFor. */
+  stone?: StoneStyle
 }
 
 export function Tombstone({
@@ -41,13 +43,27 @@ export function Tombstone({
   size = 'regular',
   href,
   headingLevel = 2,
+  stone,
 }: TombstoneProps) {
   const Heading = `h${headingLevel}` as const
   const born = formatDate(bornAt) ?? '?'
   const died = formatDate(diedAt) ?? (look === 'zombie' ? 'still walking' : '?')
 
+  // Only resting stones lean: a disturbed one is already knocked over, a zombie stands tall.
+  const variety = stone && {
+    '--stone-height': `${19 + stone.height}rem`,
+    '--stone-width': `${stone.width}rem`,
+    '--stone-tilt': `${look === 'resting' ? stone.tilt : 0}deg`,
+  }
+
   return (
-    <article className={styles.plot} data-look={look} data-size={size}>
+    <article
+      className={styles.plot}
+      data-look={look}
+      data-size={size}
+      data-shape={stone?.shape}
+      style={variety as CSSProperties | undefined}
+    >
       <div className={styles.stone}>
         {look === 'zombie' && <Cracks />}
         <p className={styles.kicker}>

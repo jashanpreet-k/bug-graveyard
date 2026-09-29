@@ -1,0 +1,38 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 100vh;
+  margin: 0;
+  padding: 1rem;
+  text-align: center;
+  background: linear-gradient(to bottom, #060913, #0d1326, #161b29);
+  color: #e9e6dc;
+  font-family: var(--font-geist-sans, system-ui, sans-serif);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-gothic, Georgia, serif);
+  font-size: clamp(2.5rem, 8vw, 3.75rem);
+}
+
+.text {
+  margin: 0;
+  max-width: 28rem;
+  color: rgb(233 230 220 / 0.75);
+}
+
+.link {
+  margin-top: 1rem;
+  color: #8dff9f;
+  text-underline-offset: 4px;
+}
+
+.link:focus-visible {
+  outline: 2px solid #8dff9f;
+  outline-offset: 3px;
+  border-radius: 4px;
+}

@@ -94,7 +94,7 @@ function Chip({
         }`}
       >
         {children}
-        {count !== undefined && <span className="text-xs opacity-60">{count}</span>}
+        {count !== undefined && <span className="text-xs opacity-75">{count}</span>}
       </Link>
     </li>
   )

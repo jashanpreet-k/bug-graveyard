@@ -6,8 +6,9 @@ import {cache, type ReactNode} from 'react'
 import {LifeChain} from '@/components/LifeChain'
 import {Tombstone} from '@/components/Tombstone'
 import {diedAt, formatDate, lookFor, pastLivesOf, statusLabel} from '@/lib/graves'
-import {sanityFetch} from '@/sanity/lib/live'
-import {GRAVE_QUERY, GRAVE_SLUGS_QUERY} from '@/sanity/lib/queries'
+import {openGraph} from '@/lib/metadata'
+import {allGraveSlugs, sanityFetch} from '@/sanity/lib/live'
+import {GRAVE_QUERY} from '@/sanity/lib/queries'
 
 // Shared by generateMetadata and the page, so a request fetches the grave once.
 const getGrave = cache(async (slug: string) => {
@@ -16,14 +17,17 @@ const getGrave = cache(async (slug: string) => {
 })
 
 export async function generateStaticParams() {
-  const {data} = await sanityFetch({query: GRAVE_SLUGS_QUERY, perspective: 'published', stega: false})
-  return data
+  return allGraveSlugs()
 }
 
 export async function generateMetadata({params}: PageProps<'/grave/[slug]'>): Promise<Metadata> {
   const grave = await getGrave((await params).slug)
   if (!grave) return {title: 'This grave is empty'}
-  return {title: `RIP ${grave.name}`, description: grave.epitaph ?? undefined}
+  const title = `RIP ${grave.name}`
+  const description =
+    grave.epitaph ??
+    `Here lies ${grave.name}${grave.language ? `, a ${grave.language.name} bug` : ''}${grave.causeOfDeath ? ` killed by ${grave.causeOfDeath.title.toLowerCase()}` : ''}.`
+  return {title: {absolute: title}, description, openGraph: openGraph(title, description)}
 }
 
 export default async function GravePage({params}: PageProps<'/grave/[slug]'>) {

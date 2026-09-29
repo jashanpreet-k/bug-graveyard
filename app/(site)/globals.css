@@ -29,3 +29,11 @@ body {
   background: var(--color-night);
   color: var(--color-bone);
 }
+
+/* A visible keyboard focus ring for every link and button that doesn't draw its own. */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-moss);
+  outline-offset: 3px;
+  border-radius: 4px;
+}

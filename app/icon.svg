@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>Bug Graveyard</title>
+  <path d="M8 28V13.5a8 8 0 0 1 16 0V28z" fill="#6b7079" stroke="#1d2027" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M12.5 14.5h7M13.5 18.5h5" stroke="#e9e6dc" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M3.5 28.5h25" stroke="#2f7a3f" stroke-width="3" stroke-linecap="round"/>
+</svg>

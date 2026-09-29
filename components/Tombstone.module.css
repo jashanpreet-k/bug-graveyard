@@ -12,7 +12,7 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  max-width: 18rem;
+  max-width: var(--stone-width, 18rem);
   font-family: var(--font-geist-sans, system-ui, sans-serif);
 }
 
@@ -24,8 +24,9 @@
   align-items: center;
   gap: 0.6rem;
   width: 100%;
-  min-height: 19rem;
+  min-height: var(--stone-height, 19rem);
   padding: 2.75rem 1.4rem 1.4rem;
+  rotate: var(--stone-tilt, 0deg);
   border-radius: 50% 50% 0.4rem 0.4rem / 6.5rem 6.5rem 0.4rem 0.4rem;
   background:
     radial-gradient(circle at 28% 18%, rgb(255 255 255 / 0.09), transparent 42%),
@@ -47,7 +48,8 @@
   font-weight: 600;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  opacity: 0.85;
+  /* 0.85 fell just under 4.5:1 on the lightest part of the stone. */
+  opacity: 0.95;
 }
 
 .name {
@@ -63,7 +65,7 @@
   margin: 0;
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
-  opacity: 0.85;
+  opacity: 0.95;
 }
 
 .epitaph {
@@ -298,13 +300,36 @@
   margin-top: -0.65rem;
 }
 
-/* The page around a mini stone already explains how it relates. */
+/* The page around a mini stone already explains how it relates, so the caption is
+   only for screen readers (display: none would hide it from them too). */
 .plot[data-size='mini'] .caption {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .plot:has(.link) .stone {
     transition: none;
   }
+}
+
+/* Shapes for the homepage's varied stones (see stoneStyleFor). "dome" is the default above. */
+
+.plot[data-shape='tall'] .stone {
+  padding-top: 3.25rem;
+  border-radius: 50% 50% 0.4rem 0.4rem / 8.75rem 8.75rem 0.4rem 0.4rem;
+}
+
+.plot[data-shape='flat'] .stone {
+  border-radius: 2.25rem 2.25rem 0.4rem 0.4rem;
+}
+
+.plot[data-shape='low'] .stone {
+  padding-top: 2.25rem;
+  border-radius: 38% 38% 0.4rem 0.4rem / 4rem 4rem 0.4rem 0.4rem;
 }

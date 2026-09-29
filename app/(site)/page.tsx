@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 import {GraveyardFilters} from '@/components/GraveyardFilters'
 import {Tombstone} from '@/components/Tombstone'
-import {diedAt, lookFor} from '@/lib/graves'
+import {diedAt, lookFor, stoneStyleFor} from '@/lib/graves'
 import {sanityFetch} from '@/sanity/lib/live'
 import {GRAVEYARD_FILTERS_QUERY, GRAVEYARD_QUERY} from '@/sanity/lib/queries'
 
@@ -38,7 +38,7 @@ export default async function GraveyardPage({searchParams}: PageProps<'/'>) {
       </p>
 
       {bugs.length > 0 ? (
-        <ul className="mt-8 grid grid-cols-1 justify-items-center gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <ul className="mt-8 grid grid-cols-1 items-end justify-items-center gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {bugs.map((bug) => (
             <li key={bug._id} className="flex w-full justify-center">
               <Tombstone
@@ -51,6 +51,7 @@ export default async function GraveyardPage({searchParams}: PageProps<'/'>) {
                 causeOfDeath={bug.causeOfDeath?.title}
                 risenFrom={bug.previousLife?.name}
                 look={lookFor(bug)}
+                stone={stoneStyleFor(bug._id)}
               />
             </li>
           ))}

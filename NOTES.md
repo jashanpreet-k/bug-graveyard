@@ -754,3 +754,128 @@ check of the live Studio showed the right tab for all three real bugs.
 - **The Structure Builder turns GROQ filters into sidebar lists:**
   `S.documentList().filter('_type == "bug" && status == $status')`, with
   `.initialValueTemplates([])` to hide "create" where it makes no sense.
+
+---
+
+## Phase 7: Most Haunted leaderboard and a content importer (2026-09-29)
+
+### What I asked for
+
+- **A) "Most Haunted" at `/leaderboard`,** in the same spooky style: the deadliest bugs
+  (top 5 by hours to kill), the most haunted languages (zombies per language), the
+  most common causes of death (bugs per cause), and the most resurrected bug chain.
+  Built with GROQ aggregations and `sanityFetch` so it updates live, with Graveyard /
+  Most Haunted links in the header, and working on phones.
+- **B) An importer for my real bugs with their historical dates.** I write bugs as a
+  simple list in `content/graves.ts`, with an optional `risesFrom` for zombie chains.
+  `scripts/import-graves.ts` turns that into published documents with fixed IDs,
+  matches languages and causes by name, links `previousLife`, and counts
+  `timesResurrected` along the chain. It's safe to re-run and updates existing
+  documents. Two example entries only (no real content), plus a `--delete-test` flag
+  that removes every "test-bug-" document.
+- Build, lint and type-check, add this entry, commit and deploy.
+
+### What was built
+
+**A) Leaderboard**
+- `app/(site)/leaderboard/page.tsx`: four cards (two columns on desktop, stacked on
+  phones), with an empty-state line for each
+- `sanity/lib/queries.ts`: `LEADERBOARD_QUERY`, one GROQ query with four
+  aggregations: `order()` plus `[0...5]` for the deadliest, `count()` subqueries with
+  a filter afterwards (`[zombies > 0]`) for the languages and causes, and the top
+  `timesResurrected` with its chain three lives back
+- `components/RankedBars.tsx`: ranked rows with thin bars; each row links to the grave,
+  or to the homepage filtered by that language or cause
+- `components/LifeChain.tsx`: the row of small linked tombstones, now shared by the
+  grave page and the leaderboard. `lib/graves.ts` gained `pastLivesOf` to go with it.
+- `components/SiteNav.tsx`: the Graveyard / Most Haunted links, highlighting the current
+  page (grave pages count as Graveyard)
+- `app/(site)/globals.css`: colour tokens for the cards (`crypt`) and bars (`zombie`,
+  `ghost`)
+
+**Chart decisions:** the dataviz guidance was followed. Each card is a single series,
+so the heading names it and there's no legend. Every value is printed at its bar's
+tip in text colour, and nothing is only visible on hover. The bars are thin and
+rounded at the data end. The aqua and violet were picked from the reference palette's
+dark-mode steps; my first choices failed the validator (too light, and the bone
+colour read as grey).
+
+**"Haunted" means every bug that came back:** anything with a previous life counts,
+not only zombies still walking. A zombie that gets fixed and buried still haunted its
+language.
+
+**B) Importer**
+- `content/graves.ts`: the list I edit, with two examples (a buried bug and the zombie
+  that rose from it)
+- `content/types.ts`: the entry format, with every field explained
+- `scripts/lib/plan-graves.ts`: checks the list and builds the documents. It reads and
+  writes nothing, so it can be tested on its own.
+- `scripts/import-graves.ts`: the command itself, with `--dry-run` (check only) and
+  `--delete-test`
+
+**How the importer behaves:**
+- Each entry becomes `grave-<key>`, with the key as the slug, written with
+  `createOrReplace`. So the file wins over Studio edits to imported bugs.
+- Nothing is written if any entry has a problem, and every problem is listed with its
+  entry's key.
+- It checks the key, name, status, severity, known language and cause (listing the
+  valid names), real dates in order, the 140-character epitaph, hours ≥ 0, and slugs
+  another bug already uses.
+- It checks chains: `risesFrom` must exist, a zombie needs one, it can't point at
+  itself or loop, it must point at a fix-merged or buried bug, and a grave rises only
+  once. Those are the same rules as the Studio actions.
+- It warns about unpublished Studio edits on imported bugs, and lists `grave-*` bugs
+  no longer in the file without deleting them.
+- `--delete-test` refuses, and names the documents, if a non-test document still
+  points at a test bug. Sanity wouldn't allow that delete anyway.
+
+**Tested:**
+- The planner, **32 checks passed**: the examples, a three-life chain (0, 1, 2
+  resurrections), case-insensitive matching, about 20 kinds of mistake, and the
+  perspective behaviour below.
+- Against production and the live site, **18 checks passed**:
+  - importing the examples, with the live homepage, zombie page and leaderboard all
+    updated by the webhook within 1–2 seconds;
+  - a re-run said "update" twice, with no duplicates;
+  - `--delete-test` refused while a temporary blocker pointed at a test bug;
+  - `--delete-test` ran for real from a backup, and the live homepage showed just the 2
+    imported graves;
+  - the 3 test bugs were restored field for field, and the examples were removed again.
+- The leaderboard renders correctly at desktop and at 390px wide, with no horizontal
+  scrolling.
+
+### What went wrong and how we fixed it
+
+- **Queries hide drafts by default.** With this API version (2026-09-28), a query that
+  doesn't name a perspective gets `published`, which leaves drafts out. A check
+  confirmed it: a draft counted 0 by default and 1 with `perspective: 'raw'`. The
+  importer asks for `raw` wherever drafts matter. `seed-test-bugs --delete` had the same
+  hidden bug: it would never have found `drafts.test-bug-*`. Fixed.
+- **`sanity exec` doesn't allow top-level `await`,** because it compiles scripts to
+  CommonJS. The temporary test failed with `Top-level await is currently not supported
+  with the "cjs" output format`. The real scripts already use a `main()` function.
+- **My date check could crash:** `new Date('2026-02-30…').toISOString()` throws
+  instead of returning false. It now checks that the date is real first.
+- **One deploy failed at the last step:** Vercel built the site, then failed with
+  `fetch failed` while uploading, and my filtered output hid the error. A retry worked.
+  After a deploy, check that the live URL actually has the new page.
+
+### Sanity notes for the write-up
+
+- **GROQ does the leaderboard in one request:** `order(hoursToKill desc)[0...5]`, a
+  `count(*[… && language._ref == ^._id])` subquery per language, and a filter applied
+  after the projection (`{…, "zombies": count(…)}[zombies > 0]`). The `^` refers to the
+  document one level up, which is how each language counts its own bugs.
+- **One query feeds several views.** The same query result drives the leaderboard
+  cards, the ranked bars and the resurrection chain, and `sanityFetch` keeps it all
+  live. Importing two bugs updated the live leaderboard in 1.6s.
+- **Content as code is optional.** Editors use the Studio, while a TypeScript file plus
+  a script import historical data in bulk. Fixed IDs (`grave-<key>`) and
+  `createOrReplace` make re-running safe, and a transaction writes everything or
+  nothing.
+- **Sanity checks references for you.** Deleting a bug that another document still
+  references fails, so `--delete-test` looks first with `references($ids)` and says
+  exactly what's in the way.
+- **Perspectives matter in scripts.** With this API version, the default is
+  `published`. Anything that needs drafts must ask for `raw` (or `drafts`), or it
+  silently misses them.

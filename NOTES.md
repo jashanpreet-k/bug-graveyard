@@ -1248,3 +1248,100 @@ and npm:
 - **Early access means advice, not enforcement.** Disabled actions and guards shape
   the UI, but anything with a write token can bypass them until the Content Lake
   enforces guards.
+
+---
+
+## DEV submission (2026-09-29)
+
+### What I asked for
+
+Do the whole DEV submission for me, stopping only for logins and approvals:
+- **Media:** Playwright screenshots of the live site at 1440px (homepage, the Zombie #2
+  grave page with its past lives, `/leaderboard`), the Studio's "…" menu with the three
+  lifecycle actions, and a GIF of the Studio split pane (typing an epitaph, switching to
+  Zombie) made with a temporary test bug that is deleted afterwards. All of it in
+  `docs/post/`, committed, and used in the post through raw.githubusercontent.com URLs.
+- **The post:** fill in every image and "my words" placeholder with short, honest lines
+  based only on NOTES.md and our sessions, say clearly that the graves are classic
+  developer bugs, fact-check every claim, number and snippet, and remove the comments.
+- **The agent session:** a copy of the Claude Code transcript with every secret replaced
+  by `[REDACTED]`, saved to `~/Desktop/bug-graveyard-session.jsonl`.
+- **DEV:** create the article through the DEV API as an unpublished draft (tags
+  `devchallenge, sanitychallenge, sanity, nextjs`), show me the final text and wait, and
+  only publish after I reply "publish". Then verify the live article.
+
+Then: "do all this by yourself" for the steps before publishing (uploading and embedding
+the agent session, the cover image).
+
+### What was built
+
+- `docs/post/homepage.png`, `grave-zombie-2.png`, `leaderboard.png`: the live site at 1440px
+- `docs/post/studio-lifecycle-actions.png`: the "…" menu on a bug whose fix merged 3 days
+  ago ("Can bury in 4 days")
+- `docs/post/studio-live-tombstone.gif`: the Studio split pane, 1200×814, 12fps, 2.2MB
+  (ffmpeg 9.0.2 `palettegen`/`paletteuse`)
+- `docs/post/cover.png`: the site's share image widened to 2000×840 for DEV's cover
+- `bug-graveyard-dev-post.md`: the final post, using the Path Two template's headings
+- `~/Desktop/bug-graveyard-session.jsonl` (outside the repo): the redacted transcript
+- A DEV agent session, "Building Bug Graveyard (Next.js + Sanity) with Claude Code"
+  (719 messages, public), embedded in the post as the Phase 5 slice with
+  `{% agent_session … 358..398 %}`
+- **The published article:**
+  https://dev.to/jashanpreet_kaur_917e774f/bug-graveyard-where-fixed-bugs-are-buried-and-regressions-rise-as-zombies-5hcf
+
+The capture, redaction and DEV scripts stayed in the session's scratchpad, not the repo.
+
+**Checked after publishing (logged out):** the page returns 200 with all seven headings,
+all 5 images and the cover load (DEV copies them to its own storage; the GIF is still
+animated, 109 frames), all 6 links return 200, and the embed renders "41 messages
+(range 358-398) of 719 total".
+
+### What went wrong and how we fixed it
+
+- **Playwright's `recordVideo` failed** when creating the browser context, because
+  Playwright's own ffmpeg wasn't installed. Fix: `npx playwright install ffmpeg`.
+- **The Studio rendered in light mode, and Sanity's "What's new" card covered the form.**
+  Fix: `colorScheme: 'dark'`, and a script that hides the card during the capture only.
+- **The first recording left a draft** (`drafts.test-bug-demo`), which would have
+  disabled the lifecycle actions in the menu screenshot. It was deleted before capturing.
+- **The homepage and leaderboard were first captured while the test bug existed**
+  (19 graves). They were captured again after deleting it (18 graves). Sanity ended with
+  18 bugs and 0 drafts.
+- **The draft post had factual errors,** fixed against the code and these notes:
+  - The actions sit after Publish in the "…" menu; they aren't "buttons next to Publish".
+  - Only `fixMergedAt`, `buriedAt` and `timesResurrected` are read-only (`bornAt` isn't),
+    and the importer sets dates too.
+  - `vercel.json` isn't "two lines".
+  - The CSS leak came from the root 404 page importing global CSS.
+  - The timezone and dotted-ID items were traps avoided from the start, not bugs.
+  - The site never links to `/studio` at all.
+  - The Workflows rule is really
+    `dateTime($now) >= dateTime($fields.fixMergedAt) + 604800`.
+- **The redaction's first pass hit random text.** Token patterns matched letter runs
+  inside base64 screenshots (16 hits) and the README placeholder `"a-long-random-string"`.
+  Fix: walk each parsed JSON line, skip image data and signatures, and allow known
+  placeholders. None of the real secrets appeared anywhere in the transcript: the
+  webhook secret, the Vercel OIDC token, the Sanity CLI token, the Vercel token, the
+  GitHub token and the DEV key. What was redacted was the one-time Vercel device login
+  code (14 mentions) and a teammate's email address, including fragments of it, which
+  came from the git log in the repo scan (40 mentions).
+- **A colon in the title breaks DEV's front matter.** The file quotes it, and the API
+  gets the title and tags as fields, so publishing only had to flip `published`.
+- **A draft's preview needs a login** (404 when logged out), so the rendered check could
+  only happen after publishing.
+- **DEV's API can create an agent session but can't make it public.**
+  `POST /api/agent_sessions` with `curated_data` (built with DEV's own open-source Claude
+  Code parser) worked. DEV added 2 redactions of its own. "Make Public" only exists in
+  the web app, and Claude Code's permission check blocked my automated attempt as a
+  publishing step, so I clicked Make Public myself.
+
+### Sanity notes for the write-up
+
+- **Checked while writing the post:** a published document with a dotted ID (the test
+  used `claimcheck.dotted`) is left out of a public API query but returned with a token,
+  so the dashed seed IDs were the right call.
+- **A public dataset can be linked to directly,** which is how the post shares the
+  project: `https://rzjmw6lg.api.sanity.io/v2026-09-28/data/query/production?query=…`.
+- **Headless Studio capture needs no extra token.** Setting
+  `__studio_auth_token_<projectId>` in `localStorage` from the CLI login signs the
+  Studio in, which is how the screenshots and the GIF were made on the live Studio.

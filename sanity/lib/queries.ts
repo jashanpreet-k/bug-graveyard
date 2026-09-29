@@ -62,6 +62,43 @@ export const GRAVE_QUERY = defineQuery(`
   }
 `)
 
+// The "Most Haunted" leaderboard, all from GROQ aggregations:
+// - deadliest: top 5 by hours it took to kill them
+// - hauntedLanguages: zombies per language (every bug with a previous life)
+// - causes: bugs per cause of death
+// - mostResurrected: the life with the highest timesResurrected, three lives back
+export const LEADERBOARD_QUERY = defineQuery(`{
+  "deadliest": *[_type == "bug" && defined(hoursToKill)] | order(hoursToKill desc, name asc) [0...5] {
+    name,
+    "slug": slug.current,
+    hoursToKill,
+    language->{name, color}
+  },
+  "hauntedLanguages": *[_type == "language"] {
+    name,
+    color,
+    "zombies": count(*[_type == "bug" && defined(previousLife) && language._ref == ^._id])
+  } [zombies > 0] | order(zombies desc, name asc),
+  "causes": *[_type == "causeOfDeath"] {
+    title,
+    "bugs": count(*[_type == "bug" && causeOfDeath._ref == ^._id])
+  } [bugs > 0] | order(bugs desc, title asc),
+  "mostResurrected": *[_type == "bug" && timesResurrected > 0] | order(timesResurrected desc, bornAt desc) [0] {
+    ${PAST_LIFE},
+    timesResurrected,
+    "previousLife": previousLife->{
+      ${PAST_LIFE},
+      "previousLife": previousLife->{
+        ${PAST_LIFE},
+        "previousLife": previousLife->{
+          ${PAST_LIFE},
+          "hasOlderLives": defined(previousLife)
+        }
+      }
+    }
+  }
+}`)
+
 // Every grave's slug, for prerendering the grave pages at build time.
 export const GRAVE_SLUGS_QUERY = defineQuery(`
   *[_type == "bug" && defined(slug.current)] {"slug": slug.current}

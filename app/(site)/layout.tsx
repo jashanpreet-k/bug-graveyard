@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import {Grass, Sky} from '@/components/Scenery'
+import {SiteNav} from '@/components/SiteNav'
 import {expireSanityTags} from '@/sanity/lib/actions'
 import {SanityLive} from '@/sanity/lib/live'
 
@@ -22,6 +23,9 @@ export default function SiteLayout({children}: {children: React.ReactNode}) {
         <p className="mt-3 max-w-xl text-base text-bone/75 sm:text-lg">
           Here lie the bugs we fixed. Most of them stayed dead.
         </p>
+        <div className="mt-6">
+          <SiteNav />
+        </div>
       </header>
       <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-4 sm:px-8">{children}</main>
       <Grass />

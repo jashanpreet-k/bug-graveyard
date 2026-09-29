@@ -13,6 +13,11 @@
   --color-night: #070a14;
   --color-bone: #e9e6dc;
   --color-moss: #8dff9f;
+  /* Leaderboard cards and their bars. The two bar colours were checked with the
+     dataviz palette validator against --color-crypt (lightness, chroma, CVD, contrast). */
+  --color-crypt: #10162a;
+  --color-zombie: #1baf7a;
+  --color-ghost: #9085e9;
 }
 
 :root {

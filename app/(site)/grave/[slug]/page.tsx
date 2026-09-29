@@ -3,8 +3,9 @@ import Link from 'next/link'
 import {notFound} from 'next/navigation'
 import {cache, type ReactNode} from 'react'
 
+import {LifeChain} from '@/components/LifeChain'
 import {Tombstone} from '@/components/Tombstone'
-import {diedAt, formatDate, lookFor, statusLabel} from '@/lib/graves'
+import {diedAt, formatDate, lookFor, pastLivesOf, statusLabel} from '@/lib/graves'
 import {sanityFetch} from '@/sanity/lib/live'
 import {GRAVE_QUERY, GRAVE_SLUGS_QUERY} from '@/sanity/lib/queries'
 
@@ -29,14 +30,7 @@ export default async function GravePage({params}: PageProps<'/grave/[slug]'>) {
   const grave = await getGrave((await params).slug)
   if (!grave) notFound()
 
-  // Oldest first. The query goes three lives back; the oldest of those knows
-  // whether there are more.
-  const pastLives = [
-    grave.previousLife?.previousLife?.previousLife,
-    grave.previousLife?.previousLife,
-    grave.previousLife,
-  ].filter((life) => life != null)
-  const hasOlderLives = grave.previousLife?.previousLife?.previousLife?.hasOlderLives ?? false
+  const {lives: pastLives, hasOlderLives} = pastLivesOf(grave)
 
   return (
     <>
@@ -96,30 +90,17 @@ export default async function GravePage({params}: PageProps<'/grave/[slug]'>) {
             Past lives
           </h2>
           <p className="mt-2 text-bone/70">This bug has died before. Oldest first.</p>
-          <ol className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:flex-wrap">
-            {hasOlderLives && (
-              <li className="text-sm italic text-bone/60">…and older lives</li>
-            )}
-            {pastLives.map((life) => (
-              <li key={life.slug} className="flex flex-col items-center gap-4 sm:flex-row">
-                {(hasOlderLives || life !== pastLives[0]) && <Arrow />}
-                <Tombstone
-                  size="mini"
-                  headingLevel={3}
-                  href={`/grave/${life.slug}`}
-                  name={life.name}
-                  epitaph={life.epitaph}
-                  bornAt={life.bornAt}
-                  diedAt={diedAt(life)}
-                  look={lookFor({status: life.status, disturbed: true})}
-                />
-              </li>
-            ))}
-            <li className="flex flex-col items-center gap-4 sm:flex-row">
-              <Arrow />
-              <span className="text-sm text-bone/70">this grave</span>
-            </li>
-          </ol>
+          <div className="mt-8">
+            <LifeChain
+              lives={pastLives.map((life) => ({
+                ...life,
+                diedAt: diedAt(life),
+                look: lookFor({status: life.status, disturbed: true}),
+              }))}
+              hasOlderLives={hasOlderLives}
+              end="this grave"
+            />
+          </div>
         </section>
       )}
 
@@ -159,15 +140,6 @@ function Detail({label, children}: {label: string; children: ReactNode}) {
       <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-bone/60">{label}</dt>
       <dd className="mt-1 text-lg text-bone">{children}</dd>
     </div>
-  )
-}
-
-function Arrow() {
-  return (
-    <span aria-hidden className="text-2xl text-bone/40">
-      <span className="sm:hidden">↓</span>
-      <span className="hidden sm:inline">→</span>
-    </span>
   )
 }
 

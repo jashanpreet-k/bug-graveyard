@@ -88,8 +88,11 @@ async function seed() {
 
 async function remove() {
   // path() globs only match whole dot-separated segments, so a prefix needs startsWith.
+  // Drafts are only visible in the raw perspective.
   const ids = await client.fetch<string[]>(
     '*[string::startsWith(_id, "test-bug-") || string::startsWith(_id, "drafts.test-bug-")]._id',
+    {},
+    {perspective: 'raw'},
   )
   if (ids.length === 0) {
     console.log('  nothing to delete')

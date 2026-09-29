@@ -31,3 +31,29 @@ const dateFormat = new Intl.DateTimeFormat('en-GB', {
 export function formatDate(date?: string | null) {
   return date ? dateFormat.format(new Date(date)) : null
 }
+
+type Life = {
+  name: string
+  slug: string
+  epitaph: string | null
+  status: string
+  bornAt: string | null
+  fixMergedAt: string | null
+  buriedAt: string | null
+}
+
+type ThreeLivesBack = {
+  previousLife: (Life & {previousLife: (Life & {previousLife: (Life & {hasOlderLives: boolean}) | null}) | null}) | null
+}
+
+// The previous lives a query fetched (it goes three back), oldest first, and
+// whether the chain goes back further than that.
+export function pastLivesOf(bug: ThreeLivesBack) {
+  const one = bug.previousLife
+  const two = one?.previousLife
+  const three = two?.previousLife
+  return {
+    lives: [three, two, one].filter((life): life is NonNullable<typeof life> => life != null) as Life[],
+    hasOlderLives: three?.hasOlderLives ?? false,
+  }
+}

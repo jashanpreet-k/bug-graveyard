@@ -1384,6 +1384,12 @@ Decisions made for me:
 - `tsconfig.json`, `eslint.config.mjs`, `.vercelignore`: the site now skips `apps/`
 - `README.md`: the Morgue and the Workflows branch
 - `docs/post/morgue.png`, `docs/post/morgue-live.gif` (1200×750, 12fps, 1.9MB)
+- **Vercel is connected to GitHub.** `vercel git connect` kept failing with "You need to add
+  a Login Connection to your GitHub account first. (400)". I connected it from the
+  project's Settings → Git page instead, installing Vercel's GitHub app for the
+  `bug-graveyard` repo only. The project is now linked to `jashanpreet-k/bug-graveyard`
+  with `main` as the production branch, so pushes to `main` deploy the site (no more
+  `vercel deploy --prod`), and pushes to other branches get preview deploys.
 
 **End-to-end test, 18/18 checks passed.** Headless Chrome opened the local Morgue inside
 the real Sanity Dashboard and clicked its buttons on four temporary test bugs (one with a

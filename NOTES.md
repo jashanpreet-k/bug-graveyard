@@ -1599,3 +1599,35 @@ credits** in total, one per full test run.
   exists.
 - **Functions can be tested locally against real data** with the same bundling, filters
   and projections as a deploy, before anything is deployed.
+
+### Deployed after I approved (2026-09-29)
+
+1. **The site and Studio:** `functions` fast-forwarded into `main` (`8a8ab2a`) and pushed.
+   Vercel built it in 45s. The live site still shows 18 graves, and the live Studio's
+   code includes the new action. (Vercel's API briefly answered 403 "Not authorized"
+   because the CLI token had expired; `vercel whoami` refreshed it.)
+2. **The functions:** `npx sanity@latest blueprints init . --organization-id o0zfmcbiy
+   --stack-name production` kept my `sanity.blueprint.ts`, created the stack
+   `ST-ywn4eb9cy2` and wrote `.sanity/blueprint.config.json` (committed).
+   - **The first `blueprints plan` failed:** "organization-scoped function coroner
+     requires a 'project' parameter to be specified in its resource definition".
+     Adding `project: 'rzjmw6lg'` to the coroner fixed it.
+   - **`blueprints deploy`** then created the `gravedigger-token` robot and both
+     functions in about two minutes. Despite the "@alpha" label in the package types,
+     the scheduled function deployed fine.
+   - **The CLI shows a notice:** "Blueprint should not be co-located with a Sanity
+     Studio". Here the Studio is embedded in the Next.js app at the repo root, so they
+     share the root; it's a layout recommendation, and the deploy works.
+   - **Cloud check:** a temporary suspected-dead bug got its report from the
+     **deployed** coroner 4.5s after being published ("Everyone got in. Nobody got
+     out." · Infinite loop, awaiting approval, real fields untouched). `npx
+     sanity@latest functions logs coroner` showed the run, and the bug was deleted
+     (18 bugs, 0 drafts left). That used 1 AI credit, 3 in total for this phase.
+   - **The gravedigger can't be triggered in the cloud on demand.** Its first real run
+     is at 00:15 UTC, and `functions logs gravedigger` will show it.
+3. **The Morgue:** `npm run deploy -- --create --title "Morgue" --yes --json` (dry run
+   first, which confirmed it builds a Sanity *application*, not the site's Studio). It's
+   deployed to the Dashboard at
+   https://www.sanity.io/@o0zfmcbiy/application/q5vfdrceno9068twj9vsvcmn, and its app
+   ID is saved as `deployment.appId` in `apps/morgue/sanity.cli.ts`. Headless Chrome
+   opened it there with live data (16 buried, 2 walking).

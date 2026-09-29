@@ -18,11 +18,15 @@ export const REPORT_STORY_MAX = 500
 /** Shortest "what happened" a report can have. */
 export const REPORT_STORY_MIN = 10
 
+/** Longest component a report can name, e.g. "scheduler". */
+export const REPORT_COMPONENT_MAX = 40
+
 /**
- * Reports the whole site accepts per day (UTC). Each report costs one AI credit when
- * the coroner drafts its epitaph, so this keeps a month at most 25 × 31 = 775 credits
- * (plus a rare retry), under the 1,000 free credits a month.
+ * Reports the whole site accepts per day (UTC). A report costs one AI credit for the
+ * coroner's draft, plus one more when the Zombie Detector finds a possible
+ * resurrection and an Agent Action explains it. At most 2 × 15 × 31 = 930 credits a
+ * month (plus a rare retry), under the 1,000 free credits.
  */
-export const REPORTS_PER_DAY = 25
+export const REPORTS_PER_DAY = 15
 /** Reports one visitor (by IP address) can send per day (UTC). */
 export const REPORTS_PER_IP_PER_DAY = 3

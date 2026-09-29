@@ -4,6 +4,9 @@ export const SITE_NAME = 'Bug Graveyard'
 export const SITE_DESCRIPTION =
   'Where fixed bugs are laid to rest, and where the ones that come back rise as zombies.'
 export const REPO_URL = 'https://github.com/jashanpreet-k/bug-graveyard'
+/** The DEV Challenge post about this project. */
+export const DEV_POST_URL =
+  'https://dev.to/jashanpreet_kaur_917e774f/bug-graveyard-where-fixed-bugs-are-buried-and-regressions-rise-as-zombies-5hcf'
 
 // Vercel sets this at build time, so share images get absolute production URLs.
 export const SITE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL

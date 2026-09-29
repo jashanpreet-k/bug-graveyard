@@ -3,6 +3,7 @@ import {useDocuments} from '@sanity/sdk-react'
 
 import {BURIAL_WAIT_DAYS, burialCutoff, todayUTC} from '../../../sanity/lib/lifecycle'
 import {BugCard} from './BugCard'
+import {SuspectCard} from './SuspectCard'
 import {type BoardFacts, useBoardFacts} from './facts'
 
 // The Morgue: every bug that isn't resting yet, in the order it moves through its
@@ -25,7 +26,8 @@ const COLUMNS: Column[] = [
     title: 'Suspected dead',
     hint: 'Probably fixed. Probably.',
     empty: 'No suspects.',
-    filter: 'status == "suspected-dead"',
+    // Possible resurrections get their own band above the columns
+    filter: 'status == "suspected-dead" && !(matchStatus == "candidate")',
   },
   {
     id: 'walking',
@@ -80,10 +82,46 @@ export function Morgue() {
           <BuriedCount />
         </Suspense>
       </header>
+      <Suspense fallback={null}>
+        <PossibleResurrections />
+      </Suspense>
       <Suspense fallback={<p className="loading">Opening the drawers…</p>}>
         <Board today={today} />
       </Suspense>
     </main>
+  )
+}
+
+// New bugs the Zombie Detector thinks might be old ones coming back. Only shown
+// while there are some; a person confirms or dismisses them in the Studio.
+function PossibleResurrections() {
+  const {data} = useDocuments({
+    documentType: 'bug',
+    filter: 'matchStatus == "candidate"',
+    perspective: 'published',
+    orderings: [{field: '_createdAt', direction: 'desc'}],
+    batchSize: 10,
+  })
+  if (data.length === 0) return null
+  return (
+    <section className="suspects" aria-labelledby="suspects">
+      <header className="column-header">
+        <h2 id="suspects">
+          <span aria-hidden>👻</span> Possible resurrections
+        </h2>
+        <span className="count">{data.length}</span>
+        <p className="hint">The Zombie Detector thinks these new bugs might be old ones coming back.</p>
+      </header>
+      <ul className="suspect-cards">
+        {data.map((handle) => (
+          <li key={handle.documentId}>
+            <Suspense fallback={<div className="card card--loading" />}>
+              <SuspectCard handle={handle} />
+            </Suspense>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

@@ -19,6 +19,14 @@ export type GraveEntry = {
   cause: string
   /** "suspected-dead", "fix-merged", "buried" or "zombie" (a zombie needs `risesFrom`). */
   status: BugStatus
+  /** Where it lived, in a word or two: "scheduler", "checkout", "auth". */
+  component?: string
+  /** What people saw while it was alive. The Zombie Detector compares its words. */
+  symptoms?: string
+  /** How it was fixed, in one line. */
+  fixSummary?: string
+  /** The pull request or commit that fixed it (http or https). */
+  fixUrl?: string
   severity?: 'low' | 'medium' | 'critical'
   /** The words on the tombstone, 140 characters at most. */
   epitaph?: string

@@ -3,7 +3,7 @@
 import type {GraveEntry} from '../../content/types'
 import {BURIAL_WAIT_DAYS, daysBetween} from '../../sanity/lib/lifecycle'
 import {BUG_STATUSES} from '../../sanity/lib/statuses'
-import {EPITAPH_MAX_LENGTH} from '../../sanity/schemaTypes/bug'
+import {EPITAPH_MAX_LENGTH} from '../../sanity/lib/epitaph'
 
 export const GRAVE_ID_PREFIX = 'grave-'
 
@@ -55,6 +55,15 @@ export function planGraves(entries: GraveEntry[], lookups: Lookups) {
     }
     if (entry.epitaph && entry.epitaph.length > EPITAPH_MAX_LENGTH) {
       problem(`epitaph is ${entry.epitaph.length} characters; the most is ${EPITAPH_MAX_LENGTH}`)
+    }
+    if (entry.component !== undefined && (entry.component.trim() === '' || entry.component.length > 40)) {
+      problem('component must be 1 to 40 characters')
+    }
+    if (entry.symptoms !== undefined && entry.symptoms.length > 500) {
+      problem(`symptoms is ${entry.symptoms.length} characters; the most is 500`)
+    }
+    if (entry.fixUrl !== undefined && !/^https?:\/\/\S+$/.test(entry.fixUrl)) {
+      problem('fixUrl must be an http or https address')
     }
     if (entry.hoursToKill !== undefined && !(Number.isFinite(entry.hoursToKill) && entry.hoursToKill >= 0)) {
       problem('hoursToKill must be a number, 0 or more')
@@ -133,7 +142,19 @@ export function planGraves(entries: GraveEntry[], lookups: Lookups) {
     causeOfDeath: ref(causes.get(normalize(entry.cause))!),
     timesResurrected: timesResurrected.get(entry.key) ?? 0,
     ...(entry.risesFrom && {previousLife: ref(graveId(entry.risesFrom))}),
-    ...pick(entry, ['severity', 'epitaph', 'killedBy', 'hoursToKill', 'bornAt', 'fixMergedAt', 'buriedAt']),
+    ...pick(entry, [
+      'severity',
+      'epitaph',
+      'killedBy',
+      'hoursToKill',
+      'bornAt',
+      'fixMergedAt',
+      'buriedAt',
+      'component',
+      'symptoms',
+      'fixSummary',
+      'fixUrl',
+    ]),
   }))
   return {documents, problems}
 }

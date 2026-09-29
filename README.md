@@ -39,6 +39,22 @@ Live: **https://bug-graveyard.vercel.app** · Built with Next.js + Sanity for th
   Agent Action to draft an epitaph and a cause of death for each new suspected-dead bug;
   a person accepts it in the Studio with **✅ Accept coroner's report**. See
   [Functions](#functions).
+- **The Zombie Detector.** When a new bug arrives, the coroner function compares it with
+  every grave that could rise again, using four signals anyone can check: same cause of
+  death, same language, same component, and shared keywords. It adds them up into a
+  match score, with no AI deciding the match:
+
+  ```
+  score = 25·[same cause] + 15·[same language] + 25·[same component] + 35·min(shared keywords, 4)/4
+  ```
+
+  At 60 or more, the grave is a *possible resurrection*: an Agent Action writes one
+  sentence about why, the grave shows as 👻 **Haunted** (worked out in GROQ, not
+  stored), and a person decides in the Studio with **🧟 Confirm resurrection** or
+  **✖ Dismiss: it's a new bug**. It never links bugs on its own. See
+  [`sanity/lib/detector.ts`](sanity/lib/detector.ts).
+- **A lifecycle timeline** on every grave page: born → fix merged → buried → rose again as
+  Zombie #n → …, following the `previousLife` chain.
 - **Report a dead bug.** A public page ([`/report`](app/(site)/report)) where anyone can
   report a bug. The coroner drafts its epitaph, the page lists it as awaiting approval,
   and it only joins the graveyard once it's approved in the Studio. It has a honeypot,
@@ -67,6 +83,8 @@ There are three document types, in [`sanity/schemaTypes`](sanity/schemaTypes).
 | `bornAt`, `fixMergedAt`, `buriedAt` | Dates in UTC. The last two are read-only and set by the lifecycle actions |
 | `previousLife` → `bug` | **A reference back to `bug` itself.** A zombie is just a bug with a previous life |
 | `timesResurrected` | How far down its chain the bug is; read-only |
+| `component`, `symptoms`, `fixSummary`, `fixUrl` | Where it lived, what people saw, and how it was fixed: what the Zombie Detector compares |
+| `matchStatus`, `resurrectionCandidate`, `matchScore`, `matchSignals`, `matchReason` | The Zombie Detector's result for a new bug; read-only |
 
 **Why a zombie is a `bug` and not its own type:**
 - A zombie gets fixed and buried like any other bug, so it needs every field a bug has.

@@ -1,6 +1,8 @@
-import {defineField, defineType, getPublishedId} from 'sanity'
+import {defineArrayMember, defineField, defineType, getPublishedId} from 'sanity'
 
+import {MatchSignalsInput} from '../components/MatchSignalsInput'
 import {CORONER_STATUSES} from '../lib/coroner'
+import {MATCH_STATUSES, MATCH_THRESHOLD} from '../lib/detector'
 import {EPITAPH_MAX_LENGTH} from '../lib/epitaph'
 import {REPORT_STATUSES} from '../lib/publicReport'
 import {BUG_STATUSES} from '../lib/statuses'
@@ -63,6 +65,21 @@ export const bug = defineType({
       },
     }),
     defineField({
+      name: 'component',
+      title: 'Component',
+      type: 'string',
+      group: 'bug',
+      description: 'Where it lived, in a word or two: "scheduler", "checkout", "auth". The Zombie Detector compares it.',
+    }),
+    defineField({
+      name: 'symptoms',
+      title: 'Symptoms',
+      type: 'text',
+      rows: 3,
+      group: 'bug',
+      description: 'What people saw while it was alive. The Zombie Detector compares its words with new bugs.',
+    }),
+    defineField({
       name: 'bornAt',
       title: 'Born',
       type: 'date',
@@ -106,6 +123,20 @@ export const bug = defineType({
       group: 'death',
       description: 'Roughly how many hours it took to find and fix.',
       validation: (rule) => rule.min(0),
+    }),
+    defineField({
+      name: 'fixSummary',
+      title: 'The fix',
+      type: 'string',
+      group: 'death',
+      description: 'How it was fixed, in one line.',
+    }),
+    defineField({
+      name: 'fixUrl',
+      title: 'Fix link',
+      type: 'url',
+      group: 'death',
+      description: 'The pull request or commit that fixed it.',
     }),
     defineField({
       name: 'fixMergedAt',
@@ -191,6 +222,68 @@ export const bug = defineType({
       group: 'coroner',
       readOnly: true,
       hidden: ({document}) => !document?.coronerStatus,
+    }),
+
+    // The Zombie Detector's result: set by the coroner function for a new bug. It
+    // never links anything itself; "Confirm resurrection" or "Dismiss" decides.
+    defineField({
+      name: 'matchStatus',
+      title: 'Zombie Detector',
+      type: 'string',
+      group: 'coroner',
+      readOnly: true,
+      hidden: ({document}) => !document?.matchStatus,
+      options: {list: MATCH_STATUSES.map(({title, value}) => ({title, value}))},
+    }),
+    defineField({
+      name: 'resurrectionCandidate',
+      title: 'Possibly a resurrection of',
+      type: 'reference',
+      to: [{type: 'bug'}],
+      group: 'coroner',
+      readOnly: true,
+      hidden: ({document}) => !document?.resurrectionCandidate,
+    }),
+    defineField({
+      name: 'matchScore',
+      title: 'Match score',
+      type: 'number',
+      group: 'coroner',
+      readOnly: true,
+      hidden: ({document}) => document?.matchScore === undefined,
+      description: `A match score from 4 signals, 0 to 100. A possible resurrection needs ${MATCH_THRESHOLD}.`,
+    }),
+    defineField({
+      name: 'matchSignals',
+      title: 'Signals',
+      type: 'array',
+      group: 'coroner',
+      readOnly: true,
+      hidden: ({document}) => !(document?.matchSignals as unknown[] | undefined)?.length,
+      components: {input: MatchSignalsInput},
+      of: [
+        defineArrayMember({
+          type: 'object',
+          name: 'matchSignal',
+          fields: [
+            defineField({name: 'signal', type: 'string'}),
+            defineField({name: 'label', type: 'string'}),
+            defineField({name: 'matched', type: 'boolean'}),
+            defineField({name: 'detail', type: 'string'}),
+            defineField({name: 'points', type: 'number'}),
+          ],
+        }),
+      ],
+    }),
+    defineField({
+      name: 'matchReason',
+      title: 'Why it might be the same bug',
+      type: 'text',
+      rows: 2,
+      group: 'coroner',
+      readOnly: true,
+      hidden: ({document}) => !document?.matchReason,
+      description: 'One sentence written by an Agent Action from the signals above.',
     }),
 
     // Public report: set when someone reports the bug on the site's report page. A

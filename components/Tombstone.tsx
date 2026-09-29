@@ -8,7 +8,7 @@ import styles from './Tombstone.module.css'
 // Styled with a CSS module rather than Tailwind so the same component renders
 // correctly inside Sanity Studio, which doesn't load the site's Tailwind CSS.
 
-export type TombstoneLook = 'resting' | 'disturbed' | 'zombie'
+export type TombstoneLook = 'resting' | 'disturbed' | 'zombie' | 'haunted'
 
 export type TombstoneSize = 'mini' | 'regular' | 'large'
 
@@ -67,7 +67,7 @@ export function Tombstone({
       <div className={styles.stone}>
         {look === 'zombie' && <Cracks />}
         <p className={styles.kicker}>
-          {look === 'zombie' ? 'Risen' : look === 'disturbed' ? <s>R.I.P.</s> : 'R.I.P.'}
+          {look === 'zombie' ? 'Risen' : look === 'disturbed' ? <s>R.I.P.</s> : look === 'haunted' ? '👻 Haunted' : 'R.I.P.'}
         </p>
         <Heading className={styles.name}>
           {href ? (
@@ -100,6 +100,7 @@ export function Tombstone({
       </div>
       <div className={styles.mound} aria-hidden />
       {look === 'disturbed' && <p className={styles.caption}>The grave is empty. It rose again.</p>}
+      {look === 'haunted' && <p className={styles.caption}>Haunted: a new bug might be this one coming back.</p>}
       {look === 'zombie' && risenFrom && (
         <p className={styles.caption}>Rose from “{risenFrom}”</p>
       )}

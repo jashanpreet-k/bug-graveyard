@@ -3,6 +3,7 @@ import Link from 'next/link'
 import {GraveyardFilters} from '@/components/GraveyardFilters'
 import {Tombstone} from '@/components/Tombstone'
 import {diedAt, lookFor, stoneStyleFor} from '@/lib/graves'
+import {DEV_POST_URL} from '@/lib/metadata'
 import {sanityFetch} from '@/sanity/lib/live'
 import {GRAVEYARD_FILTERS_QUERY, GRAVEYARD_QUERY} from '@/sanity/lib/queries'
 
@@ -25,6 +26,7 @@ export default async function GraveyardPage({searchParams}: PageProps<'/'>) {
   return (
     <>
       <h1 className="sr-only">Every grave in the Bug Graveyard</h1>
+      {!filtered && <HowToTest />}
       <GraveyardFilters options={filters} active={active} />
 
       <p className="mt-8 text-sm text-bone/70" aria-live="polite">
@@ -70,6 +72,59 @@ export default async function GraveyardPage({searchParams}: PageProps<'/'>) {
         </div>
       )}
     </>
+  )
+}
+
+// For judges and first-time visitors: the quickest way to see the whole idea
+function HowToTest() {
+  const step = 'flex gap-3'
+  const number = 'font-display text-2xl leading-none text-moss'
+  return (
+    <section
+      aria-labelledby="how-to-test"
+      className="mb-10 flex flex-col gap-5 rounded-2xl border border-bone/15 bg-night/55 p-5 sm:p-6 lg:flex-row lg:items-start lg:justify-between"
+    >
+      <div className="lg:max-w-4xl">
+        <h2 id="how-to-test" className="font-display text-2xl text-bone">
+          How to test in 60 seconds
+        </h2>
+        <ol className="mt-4 grid gap-4 text-sm text-bone/80 sm:grid-cols-2 lg:grid-cols-4">
+          <li className={step}>
+            <span className={number} aria-hidden>1</span>
+            <span>
+              Open a zombie grave, like{' '}
+              <Link href="/grave/tz-scheduler-z2" className="text-bone underline underline-offset-4 hover:text-moss">
+                the timezone bug’s third life
+              </Link>
+              , and follow its timeline.
+            </span>
+          </li>
+          <li className={step}>
+            <span className={number} aria-hidden>2</span>
+            <span>
+              <Link href="/report" className="text-bone underline underline-offset-4 hover:text-moss">
+                Report a dead bug
+              </Link>{' '}
+              and press <strong className="text-bone">Try an example</strong>.
+            </span>
+          </li>
+          <li className={step}>
+            <span className={number} aria-hidden>3</span>
+            <span>Watch the Zombie Detector: a possible resurrection, its signals and a match score, within seconds.</span>
+          </li>
+          <li className={step}>
+            <span className={number} aria-hidden>4</span>
+            <span>Back here, the old grave is 👻 Haunted until the graveyard keeper confirms or dismisses it.</span>
+          </li>
+        </ol>
+      </div>
+      <a
+        href={DEV_POST_URL}
+        className="self-start rounded-full border border-moss/40 bg-[#0f1a16] px-4 py-2 text-sm whitespace-nowrap text-moss transition-colors hover:border-moss hover:text-bone focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss"
+      >
+        Built for the DEV × Sanity Challenge ↗
+      </a>
+    </section>
   )
 }
 

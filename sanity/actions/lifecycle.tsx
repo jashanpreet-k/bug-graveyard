@@ -199,7 +199,7 @@ export const lifecycleActions = [MarkFixMergedAction, DeclareBuriedAction, Repor
 
 // A grave only rises once: its zombie carries on the chain, so the next
 // resurrection is reported on the zombie's grave.
-const RISEN_QUERY = '*[_type == "bug" && previousLife._ref == $id][0].name'
+export const RISEN_QUERY = '*[_type == "bug" && previousLife._ref == $id][0].name'
 
 // The name of the zombie that already rose from this grave, kept up to date;
 // null if none has (or while the first check is still running).
@@ -219,7 +219,7 @@ function useRisenZombie(publishedId: string | undefined) {
 }
 
 // "timezone-bug-zombie-2", or "…-2-2" if a bug already uses that slug.
-async function uniqueSlug(client: SanityClient, base: string) {
+export async function uniqueSlug(client: SanityClient, base: string) {
   for (let attempt = 1; ; attempt++) {
     const candidate = attempt === 1 ? base : `${base}-${attempt}`
     const taken = await client.fetch<boolean>(

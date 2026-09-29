@@ -4,8 +4,9 @@ import {notFound} from 'next/navigation'
 import {cache, type ReactNode} from 'react'
 
 import {LifeChain} from '@/components/LifeChain'
+import {LifeTimeline} from '@/components/LifeTimeline'
 import {Tombstone} from '@/components/Tombstone'
-import {diedAt, formatDate, lookFor, pastLivesOf, statusLabel} from '@/lib/graves'
+import {diedAt, formatDate, lookFor, pastLivesOf, statusLabel, timelineOf} from '@/lib/graves'
 import {openGraph} from '@/lib/metadata'
 import {allGraveSlugs, sanityFetch} from '@/sanity/lib/live'
 import {GRAVE_QUERY} from '@/sanity/lib/queries'
@@ -35,6 +36,7 @@ export default async function GravePage({params}: PageProps<'/grave/[slug]'>) {
   if (!grave) notFound()
 
   const {lives: pastLives, hasOlderLives} = pastLivesOf(grave)
+  const timeline = timelineOf({pastLives, hasOlderLives, grave, risen: grave.risen, haunting: grave.haunting})
 
   return (
     <>
@@ -53,10 +55,17 @@ export default async function GravePage({params}: PageProps<'/grave/[slug]'>) {
           language={grave.language}
           causeOfDeath={grave.causeOfDeath?.title}
           risenFrom={grave.previousLife?.name}
-          look={lookFor({status: grave.status, disturbed: grave.risen.length > 0})}
+          look={lookFor({status: grave.status, disturbed: grave.risen.length > 0, haunted: Boolean(grave.haunting)})}
         />
 
         <section aria-labelledby="certificate" className="w-full max-w-2xl">
+          {grave.haunting && (
+            <p className="mb-6 rounded-xl border border-[#cfe0ff]/30 bg-[#141b2c] p-4 text-sm text-[#dbe6ff]">
+              👻 <strong>Haunted.</strong> “{grave.haunting.name}” was just reported, and the Zombie Detector thinks it
+              might be this bug coming back (match score {grave.haunting.matchScore ?? '?'} from 4 signals). The graveyard
+              keeper will confirm it or dismiss it.
+            </p>
+          )}
           <h2 id="certificate" className="font-display text-3xl text-bone">
             Death certificate
           </h2>
@@ -84,9 +93,33 @@ export default async function GravePage({params}: PageProps<'/grave/[slug]'>) {
             {(grave.timesResurrected ?? 0) > 0 && (
               <Detail label="Times resurrected">{grave.timesResurrected}</Detail>
             )}
+            {grave.component && <Detail label="Component">{grave.component}</Detail>}
+            {grave.symptoms && (
+              <Detail label="Symptoms" wide>
+                {grave.symptoms}
+              </Detail>
+            )}
+            {grave.fixSummary && (
+              <Detail label="The fix" wide>
+                {grave.fixSummary}
+                {grave.fixUrl && (
+                  <a href={grave.fixUrl} rel="nofollow noopener" className="ml-2 text-base text-moss underline underline-offset-4">
+                    See the fix ↗
+                  </a>
+                )}
+              </Detail>
+            )}
           </dl>
         </section>
       </div>
+
+      <section aria-labelledby="timeline" className="mt-20">
+        <h2 id="timeline" className="font-display text-3xl text-bone">
+          Timeline
+        </h2>
+        <p className="mt-2 text-bone/70">Every life of this bug, oldest first.</p>
+        <LifeTimeline events={timeline} />
+      </section>
 
       {pastLives.length > 0 && (
         <section aria-labelledby="past-lives" className="mt-20">
@@ -138,9 +171,9 @@ export default async function GravePage({params}: PageProps<'/grave/[slug]'>) {
   )
 }
 
-function Detail({label, children}: {label: string; children: ReactNode}) {
+function Detail({label, children, wide}: {label: string; children: ReactNode; wide?: boolean}) {
   return (
-    <div>
+    <div className={wide ? 'sm:col-span-2' : undefined}>
       <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-bone/60">{label}</dt>
       <dd className="mt-1 text-lg text-bone">{children}</dd>
     </div>

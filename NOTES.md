@@ -1874,3 +1874,203 @@ The experiment stays on `explore/workflows`, and the post says it's not live.
      Sanity Project Details land on their sections.
    - The new DEV key was read from `.env.local`, never printed, and its line deleted
      afterwards.
+
+---
+
+## Phase 13: The Zombie Detector (2026-09-30)
+
+### What I asked for
+
+A final feature on a `zombie-detector` branch, without breaking anything live or
+restructuring the schema (only new optional fields), shown to me before merging or
+deploying. It should answer "Is this actually an old bug coming back?" with an
+**explainable** detector, not fake AI:
+1. **New optional fields:** `symptoms`, `fixSummary`, `fixUrl`, `component`. Fill them
+   for the 18 graves and re-import.
+2. **The detector, in the coroner function:** compare a new suspected-dead bug with the
+   buried and disturbed graves.
+   - Four transparent signals: same cause of death, same language, same component, and
+     shared keywords (showing them).
+   - A deterministic score with its formula documented.
+   - An Agent Action writes a one-sentence reason, only above a threshold.
+   - Store `resurrectionCandidate`, `matchScore`, `matchSignals` and `matchReason`.
+   - Never link automatically, and never claim "AI similarity %".
+3. **👻 Haunted:** the grave looks haunted while a candidate is pending, worked out in
+   GROQ and never stored. In the Studio, "🧟 Confirm resurrection" (the same rules as
+   Report resurrection) and "✖ Dismiss: it's a new bug". Show the signals in the
+   Coroner's report tab and in the Morgue.
+4. **The report page:** the live result after submitting (possible resurrection, the
+   ✓/✗ checklist, the score, the previous fix, or "No known ghosts"), and a "Try an
+   example" button for judges. Keep the honeypot and the limits.
+5. **A vertical lifecycle timeline** on the grave page.
+6. **On the homepage:** a "How to test in 60 seconds" box and a DEV challenge badge.
+7. **Tests** with temporary data (a clear match, a weak match, dismiss), plus the AI
+   credit use, build, lint, type-check and this entry.
+
+### The match score (sanity/lib/detector.ts)
+
+```
+match score = 25 × [same cause of death]
+            + 15 × [same language]
+            + 25 × [same component]
+            + 35 × min(shared keywords, 4) / 4        (rounded)
+```
+
+- **The weights add up to 100,** and a possible resurrection needs **60**.
+- **Keywords** are the words of a bug's name and symptoms: lowercased, without common
+  words, with plural and -ed/-ing endings trimmed, and with two aliases (DST →
+  daylight, TZ → timezone). The page shows the shared words, not their trimmed forms.
+- **The cause signal** uses the new bug's own cause of death, or else the cause the
+  coroner suggested, and it says so ("Timezone (the coroner's suggestion)").
+- **Ties** go to the grave name that sorts first.
+- **It's labelled "match score from 4 signals",** never a similarity percentage.
+
+### Decisions beyond the brief
+
+- **Only graves that are allowed to rise can be candidates:** fix merged or buried, not
+  risen yet, and not a report still waiting for approval. The brief said "buried and
+  disturbed graves", but a disturbed grave has already risen, and a grave only rises
+  once, so its chain continues at its zombie. That zombie is compared once it's dead
+  again. That's also what "Confirm resurrection" needs.
+- **A result is always stored,** even below the threshold: `matchStatus: "none"` and the
+  closest score (no candidate, no reason, no Agent Action). That's how the report page
+  can say "No known ghosts" and show the closest score. `matchStatus` (candidate, none,
+  confirmed, dismissed) is one more optional field; Haunted is worked out from it.
+- **"Confirm resurrection"** renames the new bug to the grave's zombie name ("… (Zombie
+  #1)") with a unique slug and the next count. It copies the language and cause if the
+  bug has none, and re-checks that the grave hasn't risen meanwhile. On a pending public
+  report it also approves it, so the zombie joins the graveyard.
+- **"Dismiss"** sets `matchStatus: "dismissed"`, clears the candidate and keeps the
+  signals as a record.
+- **Public reports:** the visitor's "what happened" is also stored as `symptoms`, and
+  there's an optional "component" field with the graveyard's components as suggestions.
+- **The daily cap fell from 25 to 15:** a report can now cost 2 credits (the draft,
+  plus the reason when it's a possible resurrection), and 2 × 15 × 31 = 930 stays under
+  the 1,000 free credits a month.
+- **`fixUrl` is empty for all 18 graves:** they're classic bugs with no real pull
+  request, and a made-up link would be dishonest. The field shows a link when it's set.
+- **The Studio got "👻 Possible resurrections"** in the sidebar, next to "🗳️ Public
+  reports".
+
+### What was built (branch `zombie-detector`, not merged; only the re-import touched live data)
+
+- `sanity/lib/detector.ts`: the signals, the score, the threshold and the statuses (pure
+  code, no AI), shared by the function, the Studio, the site and the Morgue
+- `sanity/schemaTypes/bug.ts`:
+  - `component` and `symptoms` (The Bug), `fixSummary` and `fixUrl` (The Death);
+  - `matchStatus`, `resurrectionCandidate`, `matchScore`, `matchSignals` (with a ✓/✗
+    checklist input, `sanity/components/MatchSignalsInput.tsx`) and `matchReason`, in
+    the Coroner's report tab;
+  - all optional, and the detector fields are read-only.
+- `content/graves.ts`, `content/types.ts`, `scripts/lib/plan-graves.ts`: a component,
+  symptoms and fix for all 18 graves (the two walking zombies have no fix yet), checked
+  on import (component ≤ 40, symptoms ≤ 500, an http(s) `fixUrl`). The planner now takes
+  the epitaph limit from `sanity/lib/epitaph.ts`, so the import script no longer loads
+  Studio components.
+- **Re-imported:** "Imported 18 graves" (18 with symptoms and a component, 16 with a fix).
+  The live site ignores the new fields until the merge; the live Studio shows them as
+  unknown fields until then.
+- `functions/coroner/index.ts`:
+  - it reads the bug itself (name, language, component, symptoms, cause);
+  - drafts as before;
+  - then runs `findResurrection` against the eligible graves;
+  - only above 60 does it make a second Agent Action for one sentence (no numbers, no
+    new facts, the visitor's words as data only);
+  - and writes everything with `setIfMissing`.
+- `sanity/actions/detector.tsx`: "🧟 Confirm resurrection" and "✖ Dismiss: it's a new
+  bug", shown only while there's a candidate and blocked while there's a draft.
+  `RISEN_QUERY` and `uniqueSlug` are now exported from `lifecycle.tsx` and shared.
+- The site:
+  - `HAUNTED` in the queries (a count of pending candidates for the grave);
+  - a `haunted` stone look (pale, see-through, a slow ghostly glow that stops with
+    reduced motion), "👻 Haunted" above the name and a caption;
+  - on the grave page, a Haunted notice, the component, symptoms and fix on the
+    certificate, and a **Timeline** section (`components/LifeTimeline.tsx`, built by
+    `timelineOf` in `lib/graves.ts`);
+  - the homepage's "How to test in 60 seconds" box and a "Built for the DEV × Sanity
+    Challenge" badge linking to the post.
+- The report page:
+  - "👻 Try an example" (a Java scheduler job that ran twice after a daylight-saving
+    switch);
+  - the optional component field;
+  - a live "Your report" panel and the same result on each pending card
+    (`components/ReportResult.tsx`);
+  - the AI's draft and reason are screened for profanity on the server before they're
+    shown.
+- The Morgue: a "👻 Possible resurrections" band above the columns (`SuspectCard.tsx`),
+  with the candidate, the ✓/✗ signals, the score, the reason and a link to decide in the
+  Studio. Flagged bugs no longer also show under "Suspected dead".
+- The README has the detector, its formula and the new fields.
+
+### Tests (all on temporary data, deleted afterwards: 18 bugs, 0 reports left)
+
+The deployed coroner is still the older version, so the new one ran through Sanity's
+local runner (bundled like a deploy). The test bugs had an epitaph of a single space:
+the deployed coroner's filter skips that, while the new code trims it and examines the
+bug.
+- **The detector (23/23):**
+  - **A clear match:** "Nightly job ran twice after the clocks changed" (Java,
+    scheduler) scored **100** against "Cron job that ran twice at DST": ✓ cause, ✓
+    language, ✓ component and 8 shared keywords. The score equals the sum of the
+    signals. The reason, "Both involve a Java scheduler timezone issue where a nightly
+    job ran twice after the clocks changed, sending customers duplicate invoices.", has
+    no percentages, and nothing was linked.
+  - **A second match, 75,** against "undefined is not a function" was **dismissed**:
+    the candidate was cleared and the signals kept.
+  - **A weak match** (a CSS tooltip) scored 40 against the closest grave: `none`, with
+    no candidate and no second Agent Action.
+  - **The site:** after a signed webhook call (like Sanity's), the homepage showed the
+    DST cron grave as haunted, and its grave page showed the notice and a timeline
+    ending in "Haunted".
+  - **The Studio:** no Confirm or Dismiss below the threshold, and the signal checklist
+    in the Coroner's report tab. **Confirm** turned the clear match into "Cron job that
+    ran twice at DST (Zombie #1)" (zombie, previousLife, count 1), and the grave went
+    from haunted to disturbed, while the dismissed candidate's grave rested again.
+  - **One rising per grave:** a similar report afterwards wasn't matched to the grave
+    that had just risen (closest score 15). The zombie's timeline read born → fix merged
+    → buried → rose again.
+- **The report page (9/9):**
+  - "Try an example" filled in the scheduler/DST report, and the report stored its
+    component and story as symptoms.
+  - "Your report" showed "⚠️ Possible resurrection of Cron job that ran twice at DST"
+    with the checklist, "Match score 100 from 4 signals", the previous fix and "The
+    graveyard keeper will confirm it.". The pending card showed the same, and the grave
+    was haunted on the homepage.
+  - A dark-mode report got "No known ghosts, a brand new bug." (closest score 18).
+- **The Morgue (in the real Dashboard, dev server):** the band showed a flagged bug with
+  its candidate, signals and score, and it wasn't repeated under "Suspected dead" (a
+  written test document, no AI).
+- **Build, lint and type-check** pass for the site and the Morgue, and the Morgue builds.
+- **AI credits for this phase: about 22.** The detector test ran three times (5, 6 and
+  6), and the report page test used 5. It's 2 per possible resurrection and 1 otherwise.
+
+### What went wrong and how we fixed it
+
+- **Restoring the coroner's prompt:** rewriting the function's header also removed the
+  original `INSTRUCTION` (the epitaph prompt), and the type-check caught it ("Cannot
+  find name 'INSTRUCTION'"). It was restored word for word from the last commit.
+- **The scratchpad was cleared between sessions.** The test helpers and Playwright had
+  to be reinstalled, and the local-server launcher rewritten. The YouTube login profile
+  folder went with it.
+- **Two test failures that weren't bugs:**
+  - **`h2:text-is(...)` found no stone:** Playwright's exact-text match picks the
+    smallest element, which here is the link inside the heading. The test now matches
+    the heading's whole text.
+  - **The Haunted state didn't show locally at first:** the function wrote the candidate
+    while no site tab was open, so the local cache never heard about it. The test now
+    calls the local `/api/revalidate` with a correctly signed body (`encodeSignatureHeader`
+    from `@sanity/webhook`, the secret read from `.env.local` in memory), exactly as
+    Sanity's webhook does in production.
+- **The permission checker gave "no verdict" several times;** file edits carried on
+  meanwhile.
+
+### Sanity notes for the write-up
+
+- **The graveyard remembers, so it can catch what comes back:** the detector is only
+  possible because every fixed bug is structured content (a cause, a language, a
+  component, the symptoms, the fix), all queryable with GROQ.
+- **A computed state instead of a stored one:** "Haunted" is a GROQ count of pending
+  candidates, like "disturbed", so it can't drift out of date.
+- **AI where it helps, rules where it matters:** the match is arithmetic anyone can
+  check. The Agent Action only explains a match that has already passed, and a person
+  confirms it with a document action.

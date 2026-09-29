@@ -5,6 +5,11 @@ import {defineQuery} from 'next-sanity'
 // the Studio. Every query that lists graves includes this condition.
 const IN_GRAVEYARD = `!(defined(publicReport) && publicReport.status == "pending")`
 
+// A grave is haunted while the Zombie Detector suggests that a new bug might be it
+// coming back and nobody has confirmed or dismissed that yet. Worked out here from
+// the pending suggestions, never stored on the grave.
+const HAUNTED = `count(*[_type == "bug" && matchStatus == "candidate" && resurrectionCandidate._ref == ^._id]) > 0`
+
 // Every bug in the graveyard, newest death first. $language and $cause narrow
 // the list; pass null to skip either filter. A grave is "disturbed" when another
 // bug's previousLife points at it: the bug it held has risen as a zombie.
@@ -24,7 +29,8 @@ export const GRAVEYARD_QUERY = defineQuery(`
     language->{name, color},
     causeOfDeath->{title},
     "previousLife": previousLife->{name},
-    "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0
+    "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0,
+    "haunted": ${HAUNTED}
   }
 `)
 
@@ -48,8 +54,14 @@ export const GRAVE_QUERY = defineQuery(`
     fixMergedAt,
     buriedAt,
     timesResurrected,
+    component,
+    symptoms,
+    fixSummary,
+    fixUrl,
     language->{name, color},
     causeOfDeath->{title, description},
+    "haunting": *[_type == "bug" && matchStatus == "candidate" && resurrectionCandidate._ref == ^._id]
+      | order(_createdAt desc)[0]{name, matchScore, "reportedAt": coalesce(publicReport.submittedAt, _createdAt)},
     "previousLife": previousLife->{
       ${PAST_LIFE},
       "previousLife": previousLife->{
@@ -150,6 +162,12 @@ export const REPORT_PAGE_QUERY = defineQuery(`{
     "submittedAt": publicReport.submittedAt,
     coronerStatus,
     coronerEpitaph,
-    "coronerCause": coronerCause->title
-  }
+    "coronerCause": coronerCause->title,
+    matchStatus,
+    matchScore,
+    matchReason,
+    matchSignals[]{_key, label, matched, detail, points},
+    "candidate": resurrectionCandidate->{name, "slug": slug.current, fixSummary, fixUrl}
+  },
+  "components": array::unique(*[_type == "bug" && defined(component) && ${IN_GRAVEYARD}].component)
 }`)

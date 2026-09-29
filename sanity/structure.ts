@@ -11,6 +11,7 @@ export const structure: StructureResolver = (S) =>
     .items([
       S.documentTypeListItem('bug').title('All graves').icon(() => '🪦'),
       pendingReports(S),
+      possibleResurrections(S),
       bugsWithStatus(S, 'zombie', 'Zombies', '🧟'),
       bugsWithStatus(S, 'suspected-dead', 'Suspected dead', '💀'),
       bugsWithStatus(S, 'fix-merged', 'Fix merged', '🩹'),
@@ -53,6 +54,24 @@ function pendingReports(S: StructureBuilder) {
         .schemaType('bug')
         .apiVersion(apiVersion)
         .filter('_type == "bug" && publicReport.status == "pending"')
+        .defaultOrdering([{field: '_createdAt', direction: 'desc'}])
+        .initialValueTemplates([]),
+    )
+}
+
+// New bugs the Zombie Detector flagged: confirm or dismiss them
+function possibleResurrections(S: StructureBuilder) {
+  return S.listItem()
+    .id('possible-resurrections')
+    .title('Possible resurrections')
+    .icon(() => '👻')
+    .child(
+      S.documentList()
+        .id('possible-resurrections')
+        .title('Possible resurrections')
+        .schemaType('bug')
+        .apiVersion(apiVersion)
+        .filter('_type == "bug" && matchStatus == "candidate"')
         .defaultOrdering([{field: '_createdAt', direction: 'desc'}])
         .initialValueTemplates([]),
     )

@@ -202,6 +202,46 @@
   }
 }
 
+/* Haunted: a new bug might be this one coming back. Pale, cold and a little see-through. */
+
+.plot[data-look='haunted'] {
+  --stone-top: #6b7384;
+  --stone-mid: #4d5566;
+  --stone-base: #363c4a;
+}
+
+.plot[data-look='haunted'] .stone {
+  opacity: 0.88;
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 0.12),
+    inset 0 -12px 24px rgb(0 0 0 / 0.3),
+    0 0 0 1px rgb(190 214 255 / 0.28),
+    0 0 36px 4px rgb(170 200 255 / 0.22);
+  animation: haunted-drift 5s ease-in-out infinite;
+}
+
+.plot[data-look='haunted'] .kicker {
+  color: #cfe0ff;
+  opacity: 1;
+}
+
+@keyframes haunted-drift {
+  50% {
+    opacity: 0.72;
+    box-shadow:
+      inset 0 2px 0 rgb(255 255 255 / 0.12),
+      inset 0 -12px 24px rgb(0 0 0 / 0.3),
+      0 0 0 1px rgb(190 214 255 / 0.4),
+      0 0 52px 10px rgb(170 200 255 / 0.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plot[data-look='haunted'] .stone {
+    animation: none;
+  }
+}
+
 /* Linked stones: the name's link stretches over the whole stone. */
 
 .link {

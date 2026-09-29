@@ -9,6 +9,7 @@ import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
 
 import {AcceptCoronerReportAction} from './sanity/actions/coroner'
+import {ConfirmResurrectionAction, DismissResurrectionAction} from './sanity/actions/detector'
 import {lifecycleActions} from './sanity/actions/lifecycle'
 import {ApprovePublicReportAction} from './sanity/actions/publicReport'
 // Go to https://www.sanity.io/docs/api-versioning to learn how API versioning works
@@ -36,6 +37,8 @@ export default defineConfig({
       const afterPublish = prev.findIndex((action) => action.action === 'publish') + 1
       return [
         ...prev.slice(0, afterPublish),
+        ConfirmResurrectionAction,
+        DismissResurrectionAction,
         AcceptCoronerReportAction,
         ApprovePublicReportAction,
         ...lifecycleActions,

@@ -209,6 +209,47 @@ body {
   font-size: 0.78rem;
 }
 
+/* Possible resurrections: a band above the columns, only while there are some */
+.suspects {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border-radius: 14px;
+  border: 1px solid rgb(190 214 255 / 0.35);
+  background: color-mix(in srgb, #141b2c 90%, transparent);
+  box-shadow: 0 0 30px rgb(170 200 255 / 0.12);
+}
+
+.suspect-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card--suspect {
+  background: linear-gradient(180deg, #4d5566 0%, #363c4a 100%);
+  border-color: rgb(190 214 255 / 0.4);
+}
+
+.suspect-of {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+  color: #dbe6ff;
+}
+
+.signals {
+  margin: 0.2rem 0 0.5rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+}
+
+.signal-detail {
+  color: var(--muted);
+}
+
 .badge--report {
   background: color-mix(in srgb, var(--warn) 18%, transparent);
   color: var(--warn);

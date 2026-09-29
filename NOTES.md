@@ -1865,3 +1865,12 @@ The experiment stays on `explore/workflows`, and the post says it's not live.
    - The redeployed Morgue showed "🗳️ Public report, awaiting approval" on it.
    - Everything was deleted afterwards: 18 bugs, 0 reports, 0 counters, 0 drafts.
    - **AI credits for this phase: 4.**
+5. **The DEV post** got the "🪦 TL;DR for judges" box, the YouTube video, the "Try it:
+   report a dead bug" section and the architecture diagram.
+   - The update went through the API, after checking that the live post still matched
+     the last version I published.
+   - Checked logged out: all 9 images load, all 10 links return 200, the agent session
+     embed renders, and the TL;DR's jump links to My Build Process, Agent Session and
+     Sanity Project Details land on their sections.
+   - The new DEV key was read from `.env.local`, never printed, and its line deleted
+     afterwards.

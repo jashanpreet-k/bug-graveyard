@@ -1642,3 +1642,198 @@ credits** in total, one per full test run.
      deleted afterwards.
    - Checked logged out: the new section is there, all 7 images load, and the agent
      session embed still renders.
+
+---
+
+## Phase 12: The final push (2026-09-29)
+
+### What I asked for
+
+A final push on a `final-push` branch, without breaking anything live, shown to me
+before any merge or deploy:
+1. **A demo video** (about 90 seconds, 1080p MP4, captions made with ffmpeg): the live
+   homepage, a zombie grave's past lives, the leaderboard, the Studio lifecycle actions,
+   the split-pane Tombstone view, a new bug getting the AI coroner's report, "Accept
+   coroner's report", and the Morgue. Use temporary test bugs, saved to
+   `~/Desktop/bug-graveyard-demo.mp4`. Then open a visible browser, let me log in to
+   YouTube myself, and upload it as **unlisted**. Never type my passwords.
+2. **A post upgrade (prepared, not published):**
+   - a "TL;DR for judges" box mapping the features to the four judging criteria and
+     the bonus;
+   - a dark architecture diagram;
+   - the YouTube video near the top;
+   - no claim that Workflows is live unless step 4 ships.
+3. **A public "Report a dead bug" page:** it creates a suspected-dead bug, the coroner
+   drafts the epitaph, a public "Awaiting the coroner's approval" list shows pending
+   reports with the AI suggestion, and a report only joins the graveyard after I accept
+   it. It needs a honeypot, a per-IP rate limit, a daily cap, length limits and a
+   profanity filter. Show the AI credit impact, test end to end, and delete the test
+   data.
+4. **Optional:** run the lifecycle Workflow inside the Morgue, keeping `bug.status` in
+   sync, only if it fits in about 4 hours without the Studio 6 upgrade. Otherwise, skip
+   it and say why.
+
+### Checked first
+
+The challenge page's **Path Two judging criteria** are:
+- quality and honesty of the build process write-up;
+- functionality of the finished app;
+- thoughtfulness of the schema behind it;
+- creativity and originality.
+
+It also asks apps that need a login to give judges a way to test. The report page gives
+judges something to try without an account.
+
+### What was built (branch `final-push`, not merged, nothing deployed)
+
+**The report page**
+- `app/(site)/report/page.tsx`: the form next to the live "Awaiting the coroner's
+  approval" list (the 20 newest pending reports with the coroner's draft). An AI draft
+  that fails the profanity check shows as "waiting for review".
+- `app/(site)/report/ReportForm.tsx`: a client form with `useActionState`, a hidden
+  honeypot field, and length limits in the browser too.
+- `app/(site)/report/actions.ts`: the server action. It checks the honeypot, the name
+  (3–80 characters), the story (10–500 characters, no links or bare domains), the
+  profanity check (`obscenity` 0.4.6) and a real language ID. Then the rate limits:
+  - 3 reports per visitor per UTC day, and 25 per day in total;
+  - both counted in **private documents** (`reportLimit.ip.<hash>` and
+    `reportLimit.day.<date>`), where the dot in the ID keeps them out of the public API;
+  - the IP is stored only as an HMAC keyed with the server's token, and yesterday's
+    counters are deleted on the next report.
+
+  It then creates a published `bug` with `publicReport: {status: "pending",
+  whatHappened, submittedAt}`, using `SANITY_WRITE_TOKEN`, which only the server has.
+  Without that token, the form says reports are closed.
+- `lib/moderation.ts` (profanity, links, tidying) and `sanity/lib/publicReport.ts` (the
+  statuses and limits)
+
+**Schema, queries and the Studio**
+- `sanity/schemaTypes/bug.ts`: a read-only "Public report" group
+- `sanity/lib/queries.ts`: one `IN_GRAVEYARD` condition
+  (`!(defined(publicReport) && publicReport.status == "pending")`) in all 10 places that
+  list graves, so a pending report is nowhere public but its own list. That covers the
+  homepage, grave pages (404 while pending), the leaderboard, filter counts, share
+  images and prerendered slugs. There's also a new `REPORT_PAGE_QUERY`.
+- The Studio:
+  - accepting the coroner's report also approves a pending public report;
+  - a fallback "🗳️ Approve public report" appears only when no AI draft is waiting
+    (for example when the month's AI credits have run out);
+  - there's a new "🗳️ Public reports" sidebar list.
+- `functions/coroner` and `sanity.blueprint.ts`: the coroner now also gets the
+  reporter's "what happened". Its prompt treats that text only as a description, never
+  as instructions, and never repeats anything rude or personal from it.
+- `apps/morgue`: a "🗳️ Public report, awaiting approval" badge on pending reports
+- The site nav links to the report page. The README covers the report page and
+  `SANITY_WRITE_TOKEN`.
+
+**The post, the diagram and the video**
+- `docs/post/architecture.svg` and `.png` (2400×1650): Studio, Content Lake, Functions,
+  the Morgue, the site (Live Content API, webhook, report form), and the Workflows
+  experiment in a dashed box marked "not live"
+- `docs/post/report.png`: the report page with a real AI draft ("Looked for
+  everything. Found None."), from a test report that was deleted afterwards
+- `bug-graveyard-dev-post.md` (local only):
+  - a "🪦 TL;DR for judges" box mapping features to the four criteria plus the bonus;
+  - the YouTube embed near the top;
+  - a "Try it: report a dead bug" section with the protections and the credit budget;
+  - the diagram under Sanity Project Details;
+  - the Tombstone GIF moved into "Inside the Studio";
+  - a corrected Vercel line (the login connection was added near the end).
+- **The demo video:** `~/Desktop/bug-graveyard-demo.mp4` (90.5s, 1920×1080, H.264 30fps,
+  10 MB) and `~/Desktop/bug-graveyard-demo.srt`. Its eight scenes:
+  - the site: the homepage, the Zombie #2 grave with its past lives, Most Haunted;
+  - the live Studio: the "…" menu with "Can bury in 4 days", and the split-pane
+    Tombstone view while typing;
+  - a new bug published in the Studio: the deployed coroner's report ("Clicked once.
+    Paid twice. It was very thorough.") and then Accept;
+  - the deployed Morgue in the Dashboard, and an end card.
+
+  The Studio scenes used the temporary test bug `test-bug-demo-video` and one new bug,
+  both deleted.
+- **YouTube (unlisted):** https://youtu.be/Tdj_If8i3Ls. I logged in myself in a separate
+  Chrome window with its own profile, started with a DevTools port. The upload went
+  through that window: the file, title, description, "Not made for kids", then
+  **Unlisted** and Save. YouTube said it becomes available once its SD version is
+  processed.
+
+**Tests**
+- **The report page (local production build writing to the real dataset):** 30
+  behaviours checked.
+  - Refused: a short name, a link, a bare domain, profanity ("sh1t"), a 501-character
+    story, an unknown language.
+  - The honeypot "accepted" a bot report but created nothing.
+  - A valid report became a published, pending, suspected-dead bug. It showed in the
+    pending list, and the deployed coroner's draft appeared there live. It wasn't in
+    the graveyard, and its grave page was a 404.
+  - The visitor's counter is a private document (invisible to the public API). A 4th
+    report from the same visitor and the 26th of the day were refused, with nothing
+    created.
+  - The Studio listed it under Public reports. Accepting the coroner's report approved
+    it: it left the pending list 1.3s later, joined the graveyard, and its grave page
+    appeared. The fallback "Approve public report" appeared only with no AI draft, and
+    it worked.
+  - At 390px wide the page doesn't scroll sideways.
+- Site: type-check and lint pass, and the production build passes (`/report` prerenders
+  as static and updates live). The Morgue: type-check, lint and build pass.
+- **AI credits this phase: 3** (the report test, the video's new bug, the post's report
+  screenshot). One more is planned for the cloud check after deploy.
+
+### Step 4 (Workflows in the Morgue): skipped, and why
+
+Keeping `bug.status` in sync is the problem.
+- **Three things write it directly today:** the Studio actions, the gravedigger and the
+  Morgue.
+- **A Workflow adds a second copy of that state.** Keeping the two in sync properly
+  means making the workflow the only writer, with a Sanity Function applying its
+  effects to the bug and every existing grave migrated. That's well over 4 hours, and
+  it changes how live data is written.
+- **Mirroring only the Morgue's clicks would drift,** because the Studio and the
+  gravedigger would still change status on their own.
+- The packages are still 0.x early access, and judges can't open the Dashboard anyway.
+
+The experiment stays on `explore/workflows`, and the post says it's not live.
+
+### What went wrong and how we fixed it
+
+- **ffmpeg has no text filters here.** This Homebrew build has no `drawtext`,
+  `subtitles` or `ass` (no libass or freetype). The captions are rendered by the browser
+  as transparent PNGs and composited with ffmpeg's `overlay`. They're also added as a
+  `mov_text` subtitle track and saved as an `.srt` file.
+- **The first cut was 104s, not 90.** The concat demuxer played each scene's last-frame
+  hold twice (a 9.05s hold came out as 18.07s). Fix: build an exact 30fps image sequence
+  per scene (for each output frame, the newest screencast frame at that moment,
+  symlinked in order), then encode that. Every scene then matches its recording.
+- **The Language picker wasn't `[data-testid="field-language"]`.** Reference fields get
+  only `field-actions-menu-<name>`, and the input is `input#language`
+  (`data-testid="autocomplete"`). The result was picked by its unique colour text
+  (`#F7DF1E`), so the field's **Create** button was never clicked.
+- **The first recording never published the new bug.** The coroner's logs showed no run
+  for it. Fix: click `[data-testid="action-publish"]` once "Saving…" has cleared, and
+  confirm through the API that a published copy exists before waiting for the coroner.
+- **`/report` was prerendered as static,** so a check of `process.env.SANITY_WRITE_TOKEN`
+  in the page ran at build time. The page now always shows the form, and the server
+  action decides (a missing token means "reports are closed").
+- **The first e2e run reported 3 failures after approving,** but the code was fine.
+  - Locally there's no webhook, only `<SanityLive />` in an open tab, and headless
+    Chrome throttles background tabs.
+  - With the site tab brought to the front, the report left the pending list 1.3s after
+    approval and joined the graveyard.
+  - In production the webhook also expires the cache.
+- **The new coroner prompt can't be dry-run locally.** The function only reads
+  *published* documents, so a draft test skipped before calling the AI (no credit
+  used). It gets a cloud check after deploy instead.
+- **Diagram layout:** the Lake-to-site arrows first ran through the Workflows box, and
+  the middle caption overlapped them. The Workflows experiment moved to a dashed strip
+  at the bottom.
+- **The permission checker failed several times** ("no verdict"). The shell commands
+  were retried, and file edits went on meanwhile.
+
+### Sanity notes for the write-up
+
+- **Visibility can be a query rule, not a document state:** one GROQ condition keeps
+  unapproved public content out of every public view, while it's still a normal
+  published document the coroner function can react to.
+- **Private documents for server bookkeeping:** the rate-limit counters sit in the same
+  public dataset, invisible to anonymous reads because of the dot in their IDs.
+- **Human-in-the-loop AI on public input:** the Agent Action only drafts, the draft is
+  screened before it's shown, and a person approves it with a Studio document action.

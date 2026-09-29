@@ -3,6 +3,7 @@ import {type DocumentActionComponent, type SanityDocument, useClient} from 'sani
 
 import {apiVersion} from '../env'
 import {CORONER_ACCEPTED, CORONER_AWAITING} from '../lib/coroner'
+import {REPORT_APPROVED, REPORT_PENDING} from '../lib/publicReport'
 import {blockedBecause, useRun} from './lifecycle'
 
 // "✅ Accept coroner's report": the only way the coroner's AI suggestion reaches a
@@ -14,6 +15,7 @@ type ReportedBug = SanityDocument & {
   coronerStatus?: string
   coronerEpitaph?: string
   coronerCause?: {_ref: string}
+  publicReport?: {status?: string}
 }
 
 export const AcceptCoronerReportAction: DocumentActionComponent = (props) => {
@@ -40,6 +42,8 @@ export const AcceptCoronerReportAction: DocumentActionComponent = (props) => {
           epitaph,
           ...(bug.coronerCause && {causeOfDeath: {_type: 'reference', _ref: bug.coronerCause._ref}}),
           coronerStatus: CORONER_ACCEPTED,
+          // A bug reported on the site joins the graveyard when its report is accepted
+          ...(bug.publicReport?.status === REPORT_PENDING && {'publicReport.status': REPORT_APPROVED}),
         })
         .commit()
     })
@@ -57,7 +61,10 @@ export const AcceptCoronerReportAction: DocumentActionComponent = (props) => {
           tone: 'positive',
           message: (
             <div>
-              <p>Accept the coroner’s report? It replaces this bug’s epitaph and cause of death.</p>
+              <p>
+                Accept the coroner’s report? It replaces this bug’s epitaph and cause of death
+                {bug.publicReport?.status === REPORT_PENDING ? ', and lets this reported bug into the graveyard.' : '.'}
+              </p>
               <p>
                 <strong>Epitaph:</strong> “{epitaph}”
               </p>

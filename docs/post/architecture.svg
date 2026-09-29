@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" width="1600" height="1100" font-family="Geist, 'Inter', 'Helvetica Neue', Arial, sans-serif">
+  <title>Bug Graveyard architecture</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#060913"/>
+      <stop offset="0.6" stop-color="#0d1326"/>
+      <stop offset="1" stop-color="#161b29"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#a9adbb"/>
+    </marker>
+    <style>
+      .box { fill: #10162a; stroke: #2b3350; stroke-width: 2; }
+      .title { font-size: 26px; font-weight: 600; fill: #e9e6dc; }
+      .sub { font-size: 16px; fill: #a9adbb; }
+      .item { font-size: 17px; fill: #d9d6cc; }
+      .label { font-size: 15px; fill: #c7cad6; }
+      .line { stroke: #a9adbb; stroke-width: 2; fill: none; }
+      .chip { fill: #1a2136; stroke: #2b3350; stroke-width: 1.5; }
+      .chiptext { font-size: 16px; fill: #e9e6dc; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1100" fill="url(#bg)"/>
+  <circle cx="1520" cy="70" r="34" fill="#ece6d2" opacity="0.9"/>
+  <text x="40" y="66" font-size="34" font-weight="700" fill="#e9e6dc">Bug Graveyard · how it fits together</text>
+  <text x="40" y="96" class="sub">Next.js + Sanity: one content model, four ways to reach it</text>
+
+  <!-- Studio -->
+  <rect x="40" y="130" width="470" height="270" rx="16" class="box" stroke="#e9e6dc" stroke-opacity="0.55"/>
+  <text x="64" y="172" class="title">Sanity Studio</text>
+  <text x="64" y="198" class="sub">embedded in the Next.js app at /studio</text>
+  <text x="64" y="240" class="item">🩹 🪦 🧟  Lifecycle document actions</text>
+  <text x="64" y="276" class="item">✅  Accept coroner’s report · 🗳️ Approve report</text>
+  <text x="64" y="312" class="item">🪦  Live Tombstone view (the site’s own component)</text>
+  <text x="64" y="348" class="item">☰  Sidebar: graves by status, public reports</text>
+  <text x="64" y="384" class="sub">runs as the signed-in editor, no token in the code</text>
+
+  <!-- Content Lake -->
+  <rect x="565" y="130" width="470" height="270" rx="16" class="box" stroke="#9085e9" stroke-opacity="0.8"/>
+  <text x="589" y="172" class="title">Content Lake</text>
+  <text x="589" y="198" class="sub">project rzjmw6lg · public dataset “production”</text>
+  <text x="589" y="240" class="item">bug: status, dates, epitaph,</text>
+  <text x="589" y="264" class="item">   previousLife → bug (zombie chains),</text>
+  <text x="589" y="288" class="item">   coroner’s report, public report</text>
+  <text x="589" y="324" class="item">language · causeOfDeath (references)</text>
+  <text x="589" y="360" class="item">rate-limit counters: private (dotted IDs)</text>
+
+  <!-- Functions -->
+  <rect x="1090" y="130" width="470" height="270" rx="16" class="box" stroke="#8dff9f" stroke-opacity="0.7"/>
+  <text x="1114" y="172" class="title">Sanity Functions</text>
+  <text x="1114" y="198" class="sub">deployed with a Blueprint</text>
+  <text x="1114" y="240" class="item">⚰️  gravedigger · scheduled, daily 00:15 UTC</text>
+  <text x="1114" y="264" class="sub">   buries every bug whose fix has held 7 days</text>
+  <text x="1114" y="304" class="item">🩺  coroner · on create</text>
+  <text x="1114" y="328" class="sub">   Agent Action (Prompt) drafts an epitaph</text>
+  <text x="1114" y="352" class="sub">   and a cause → “awaiting approval”</text>
+  <text x="1114" y="384" class="sub">   the AI only suggests; a person accepts</text>
+
+  <!-- Studio <-> Lake -->
+  <path d="M512 250 H563" class="line" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <!-- Lake <-> Functions -->
+  <path d="M1037 230 H1088" class="line" marker-end="url(#arrow)"/>
+  <path d="M1088 290 H1037" class="line" marker-end="url(#arrow)"/>
+  <text x="1040" y="220" class="label" font-size="13">events</text>
+  <text x="1040" y="310" class="label" font-size="13">writes</text>
+
+  <!-- Shared rules -->
+  <rect x="40" y="450" width="470" height="170" rx="16" class="box" stroke-dasharray="0"/>
+  <text x="64" y="490" class="title" font-size="22">One rulebook</text>
+  <text x="64" y="516" class="sub">sanity/lib/lifecycle.ts</text>
+  <text x="64" y="552" class="item">BURIAL_WAIT_DAYS = 7 · zombie names · slugs</text>
+  <text x="64" y="588" class="item">used by the Studio actions, the Morgue</text>
+  <text x="64" y="610" class="item">and the gravedigger</text>
+
+  <!-- The middle column carries the Lake <-> site arrows -->
+  <text x="800" y="512" class="sub" text-anchor="middle">Studio edits, function writes</text>
+  <text x="800" y="536" class="sub" text-anchor="middle">and Morgue clicks reach</text>
+  <text x="800" y="560" class="sub" text-anchor="middle">the site in seconds</text>
+
+  <!-- Morgue -->
+  <rect x="1090" y="450" width="470" height="170" rx="16" class="box" stroke="#1baf7a"/>
+  <text x="1114" y="490" class="title" font-size="24">The Morgue</text>
+  <text x="1114" y="516" class="sub">App SDK app in the Sanity Dashboard</text>
+  <text x="1114" y="552" class="item">live columns: suspected dead · walking ·</text>
+  <text x="1114" y="576" class="item">waiting · ready to bury</text>
+  <text x="1114" y="606" class="item">same lifecycle actions on every card</text>
+
+  <!-- Lake <-> Morgue -->
+  <path d="M1000 402 C 1030 430, 1060 470, 1088 500" class="line" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text x="1052" y="428" class="label" font-size="13">live</text>
+
+  <!-- Site -->
+  <rect x="40" y="690" width="1520" height="270" rx="16" class="box" stroke="#e9e6dc" stroke-opacity="0.55"/>
+  <text x="64" y="732" class="title">Next.js 16 site on Vercel</text>
+  <text x="64" y="758" class="sub">bug-graveyard.vercel.app · deploys on every push to main</text>
+
+  <rect x="64" y="782" width="170" height="44" rx="22" class="chip"/><text x="149" y="810" class="chiptext" text-anchor="middle">Graveyard</text>
+  <rect x="248" y="782" width="248" height="44" rx="22" class="chip"/><text x="372" y="810" class="chiptext" text-anchor="middle">Grave pages · past lives</text>
+  <rect x="510" y="782" width="190" height="44" rx="22" class="chip"/><text x="605" y="810" class="chiptext" text-anchor="middle">Most Haunted</text>
+  <rect x="714" y="782" width="220" height="44" rx="22" class="chip" stroke="#8dff9f" stroke-opacity="0.6"/><text x="824" y="810" class="chiptext" text-anchor="middle">Report a dead bug</text>
+  <rect x="948" y="782" width="250" height="44" rx="22" class="chip"/><text x="1073" y="810" class="chiptext" text-anchor="middle">Share images (next/og)</text>
+
+  <text x="64" y="872" class="item">⚡ sanityFetch + &lt;SanityLive /&gt;: open tabs update within seconds (Live Content API)</text>
+  <text x="64" y="906" class="item">🔏 Signed Sanity webhook → /api/revalidate: refreshes the cache when nobody is watching</text>
+  <text x="64" y="940" class="item">🛡️ Report form → server action: honeypot, per-visitor and daily limits, profanity and link checks</text>
+
+  <!-- Lake <-> Site -->
+  <path d="M630 402 V688" class="line" marker-end="url(#arrow)"/>
+  <path d="M970 688 V402" class="line" marker-end="url(#arrow)"/>
+  <text x="620" y="660" class="label" text-anchor="end">content, live</text>
+  <text x="980" y="660" class="label">pending reports</text>
+  <!-- Workflows experiment (not live) -->
+  <rect x="40" y="990" width="1520" height="80" rx="16" fill="none" stroke="#5a6072" stroke-width="2" stroke-dasharray="8 7"/>
+  <text x="64" y="1026" font-size="20" font-weight="600" fill="#a9adbb">Workflows experiment · branch explore/workflows · not live</text>
+  <text x="64" y="1054" font-size="16" fill="#8f94a3">the same lifecycle as a workflow definition, with the 7-day rule as a GROQ requirement and 4 tests against the real engine</text>
+</svg>

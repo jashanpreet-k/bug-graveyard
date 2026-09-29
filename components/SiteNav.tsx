@@ -6,6 +6,7 @@ import {usePathname} from 'next/navigation'
 const LINKS = [
   {href: '/', label: 'Graveyard', active: (path: string) => path === '/' || path.startsWith('/grave/')},
   {href: '/leaderboard', label: 'Most Haunted', active: (path: string) => path.startsWith('/leaderboard')},
+  {href: '/report', label: 'Report a dead bug', active: (path: string) => path.startsWith('/report')},
 ]
 
 export function SiteNav() {

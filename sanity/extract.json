@@ -289,6 +289,46 @@
           "name": "causeOfDeath.reference"
         },
         "optional": true
+      },
+      "publicReport": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "object",
+          "attributes": {
+            "status": {
+              "type": "objectAttribute",
+              "value": {
+                "type": "union",
+                "of": [
+                  {
+                    "type": "string",
+                    "value": "pending"
+                  },
+                  {
+                    "type": "string",
+                    "value": "approved"
+                  }
+                ]
+              },
+              "optional": true
+            },
+            "whatHappened": {
+              "type": "objectAttribute",
+              "value": {
+                "type": "string"
+              },
+              "optional": true
+            },
+            "submittedAt": {
+              "type": "objectAttribute",
+              "value": {
+                "type": "string"
+              },
+              "optional": true
+            }
+          }
+        },
+        "optional": true
       }
     }
   },

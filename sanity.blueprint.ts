@@ -36,7 +36,7 @@ export default defineBlueprint({
         on: ['create'],
         filter:
           '_type == "bug" && status == "suspected-dead" && (!defined(epitaph) || epitaph == "") && !defined(coronerStatus)',
-        projection: '{_id, name, "language": language->name}',
+        projection: '{_id, name, "language": language->name, "whatHappened": publicReport.whatHappened}',
         resource: {type: 'dataset', id: `${PROJECT_ID}.${DATASET}`},
       },
       timeout: 60,

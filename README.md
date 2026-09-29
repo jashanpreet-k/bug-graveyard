@@ -39,6 +39,11 @@ Live: **https://bug-graveyard.vercel.app** · Built with Next.js + Sanity for th
   Agent Action to draft an epitaph and a cause of death for each new suspected-dead bug;
   a person accepts it in the Studio with **✅ Accept coroner's report**. See
   [Functions](#functions).
+- **Report a dead bug.** A public page ([`/report`](app/(site)/report)) where anyone can
+  report a bug. The coroner drafts its epitaph, the page lists it as awaiting approval,
+  and it only joins the graveyard once it's approved in the Studio. It has a honeypot,
+  per-visitor and daily limits (counted in private documents), length limits, and link
+  and profanity checks.
 - **The Morgue, an App SDK app.** A live board in the Sanity Dashboard of every bug that
   isn't resting yet (suspected dead, walking, waiting, ready to bury), with the same
   lifecycle actions on each card. See [`apps/morgue`](apps/morgue).
@@ -108,6 +113,8 @@ npx sanity@latest login
    NEXT_PUBLIC_SANITY_DATASET="production"
    # Only needed for the webhook route; make one with: openssl rand -hex 32
    SANITY_REVALIDATE_SECRET="a-long-random-string"
+   # Only needed for the report page: a Sanity API token with the Editor role
+   SANITY_WRITE_TOKEN="..."
    ```
 
 3. Add the languages and causes of death, then import the graves:
@@ -131,8 +138,9 @@ npx sanity@latest login
 
 ## Deploying
 
-Deploy to Vercel with the same three environment variables, keeping
-`SANITY_REVALIDATE_SECRET` in production only and marked sensitive. Then, in Sanity:
+Deploy to Vercel with the same environment variables, keeping
+`SANITY_REVALIDATE_SECRET` and `SANITY_WRITE_TOKEN` in production only and marked
+sensitive. Then, in Sanity:
 
 - **Add the production URL as a CORS origin, with credentials allowed.**
 - **Create a webhook:**

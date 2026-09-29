@@ -7,9 +7,17 @@ cover_image: https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/
 
 *This is a submission for the [Sanity Challenge, Path Two: Vibe-Code Something Strange](https://dev.to/challenges/sanity-2026-09-16)*
 
-![Sanity Studio in split pane: typing a new epitaph in the form updates the tombstone on the right, and switching the status to Zombie makes the stone crack and glow green](https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/docs/post/studio-live-tombstone.gif)
+> **🪦 TL;DR for judges**
+>
+> - **Write-up (quality and honesty):** [My Build Process](#my-build-process) has the prompts that worked, the one that didn't, every place it got stuck, and what's *not* live. The full Claude Code session is [embedded below](#agent-session).
+> - **Working app:** the [live site](https://bug-graveyard.vercel.app) needs no login. Open a zombie's past lives, check Most Haunted, and [report a dead bug yourself](https://bug-graveyard.vercel.app/report): an AI coroner drafts its epitaph within seconds.
+> - **Schema:** a zombie is a whole new `bug` that points to its previous life, "disturbed" graves are worked out in GROQ, and AI suggestions and public reports sit in separate fields until a person approves them. See [Sanity Project Details](#sanity-project-details).
+> - **Creativity:** regressions rise from their graves as zombies, and an AI coroner writes the epitaphs (but never gets the last word).
+> - **Beyond the Studio (bonus):** custom Studio actions, a live Tombstone view and sidebar · the Morgue, an App SDK app · two Sanity Functions (a daily gravedigger and the coroner) · an Agent Action (Prompt) · a Workflows experiment on a branch (not live).
 
-*The Studio in split pane: the form on the left, the live 🪦 Tombstone view on the right. (This is a throwaway test bug, deleted afterwards.)*
+{% embed https://www.youtube.com/watch?v=Tdj_If8i3Ls %}
+
+*A 90-second tour: the site, the Studio's lifecycle actions and Tombstone view, the AI coroner and the Morgue. The Studio scenes use temporary test bugs, deleted afterwards.*
 
 ## What I Built
 
@@ -49,6 +57,22 @@ The **Most Haunted** leaderboard ranks the deadliest bugs (by the hours it took 
 
 ![The Most Haunted leaderboard: the most resurrected chain, the deadliest bugs, the most haunted languages and the most common causes of death](https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/docs/post/leaderboard.png)
 
+### Try it: report a dead bug
+
+The [report page](https://bug-graveyard.vercel.app/report) lets anyone add a bug. It becomes a suspected-dead bug, the coroner drafts its epitaph within seconds, and it waits under "Awaiting the coroner's approval" until I accept it in the Studio. Only then does it join the graveyard.
+
+![The "Report a dead bug" page: a form with the bug's name, language and what happened, and next to it a pending report with the coroner's draft epitaph, awaiting approval](https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/docs/post/report.png)
+
+*The report page with a test report (deleted afterwards).*
+
+Every report costs an AI credit, so the form is guarded like any public form that costs money:
+
+- a honeypot field that bots fill in and people never see;
+- 3 reports per visitor and 25 in total a day, counted in private documents (a dot in the ID keeps them out of the public API), with the visitor's IP stored only as a keyed hash;
+- length limits, no links, and a profanity filter on both the reports and the AI's drafts before they're shown.
+
+The daily cap keeps a month at 25 × 31 = 775 credits at most (plus a rare retry), under the 1,000 free AI credits.
+
 ### Inside the Studio
 
 This is where most of the Sanity work lives.
@@ -65,7 +89,11 @@ This is where most of the Sanity work lives.
 
 **2. A live Tombstone view.** Every bug opens with two tabs, "Editor" and "🪦 Tombstone". The Tombstone tab renders the *same* React component the website uses. In split pane the stone updates on every keystroke, with an epitaph counter (140 characters max).
 
-**3. A graveyard sidebar:** 🪦 All graves, 🧟 Zombies, 💀 Suspected dead, 🩹 Fix merged and ⚰️ Buried, then Languages and Causes of death.
+![Sanity Studio in split pane: typing a new epitaph in the form updates the tombstone on the right, and switching the status to Zombie makes the stone crack and glow green](https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/docs/post/studio-live-tombstone.gif)
+
+*The Studio in split pane: the form on the left, the live 🪦 Tombstone view on the right. (This is a throwaway test bug, deleted afterwards.)*
+
+**3. A graveyard sidebar:** 🪦 All graves, 🗳️ Public reports, 🧟 Zombies, 💀 Suspected dead, 🩹 Fix merged and ⚰️ Buried, then Languages and Causes of death.
 
 ## Code
 
@@ -79,6 +107,7 @@ Where to look:
 - `sanity/components/TombstoneView.tsx` and `components/Tombstone.tsx`: the Studio view and the stone it shares with the site
 - `apps/morgue/`: the Morgue, an App SDK app (see below)
 - `functions/` and `sanity.blueprint.ts`: the gravedigger and coroner Sanity Functions (see below)
+- `app/(site)/report/`: the public report page and its server action (all the checks above)
 - `NOTES.md`: the phase-by-phase build log this post is based on
 
 ## My Build Process
@@ -161,6 +190,8 @@ Next came two [Sanity Functions](https://www.sanity.io/docs/functions), deployed
 
 *A coroner's report waiting for approval. The bugs in the list are temporary test bugs that were deleted afterwards.*
 
+The coroner also drafts the epitaphs of bugs reported on the site. Its prompt treats the reporter's words only as a description of the bug, never as instructions, and nothing it writes is shown publicly without the profanity check.
+
 Both functions were tested with Sanity's local runner against the real dataset first: 23 checks on temporary bugs, including a forced gravedigger run. Then the deployed coroner filed its first report in the cloud about 4.5 seconds after a test bug was published.
 
 ## Sanity Project Details
@@ -168,7 +199,9 @@ Both functions were tested with Sanity's local runner against the real dataset f
 - **Project ID:** `rzjmw6lg`
 - **Dataset:** `production` (public). Try it: [every bug, as JSON](https://rzjmw6lg.api.sanity.io/v2026-09-28/data/query/production?query=*%5B_type%20%3D%3D%20%22bug%22%5D%20%7C%20order%28bornAt%20asc%29%20%7Bname%2C%20status%2C%20epitaph%7D)
 
-There are three document types: `bug`, `language` and `causeOfDeath`.
+There are three document types: `bug`, `language` and `causeOfDeath`. Here's how everything reaches them:
+
+![Architecture: Sanity Studio with custom actions, the Content Lake, two Sanity Functions (the gravedigger, and the coroner with Agent Actions), the Morgue App SDK app, and the Next.js site with the Live Content API, a signed webhook and the report form, plus the Workflows experiment on a branch](https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/docs/post/architecture.png)
 
 ### The schema: zombies are documents, not checkboxes
 
@@ -223,7 +256,7 @@ This is the Claude Code session behind this build, with secrets redacted. The em
 ## What I learned
 
 - **Document actions go a long way.** They're just React components that re-render with the document, so a live countdown like "Can bury in 4 days" needs no refresh logic. And they run as the signed-in editor, so there's no token in the code.
-- **Test against a production build from day one.** `npm run dev` hid both live-update bugs. I'd also connect Vercel to GitHub at the start: I never added the login connection, so every deploy was a manual `vercel deploy --prod`.
+- **Test against a production build from day one.** `npm run dev` hid both live-update bugs. I'd also connect Vercel to GitHub at the start: I only added the login connection near the end, so most deploys were a manual `vercel deploy --prod`.
 - **The App SDK reuses the Studio's ideas outside the Studio.** Handles, projections and document actions, all live, in a plain React app. Sharing one rules file kept the Studio and the Morgue from drifting apart.
 - **Workflows can model this lifecycle,** and the in-memory test engine makes a rule like "7 days" easy to test by moving the clock. But a real integration needs Studio 6 and a runtime, so for now it stays an experiment.
 - **Directing an agent works best in small phases,** each with a clear brief, a test and a build-log entry. That log is also what this post was fact-checked against.

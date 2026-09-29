@@ -33,6 +33,8 @@ interface Bug {
   causeRef: string | null
   causeTitle: string | null
   previousLife: string | null
+  /** "pending" for a bug reported on the site and not yet approved */
+  publicReport: string | null
 }
 
 const PROJECTION = `{
@@ -43,7 +45,8 @@ const PROJECTION = `{
   "languageColor": language->color,
   "causeRef": causeOfDeath._ref,
   "causeTitle": causeOfDeath->title,
-  "previousLife": previousLife->name
+  "previousLife": previousLife->name,
+  "publicReport": publicReport.status
 }`
 
 // Dates are "YYYY-MM-DD" in UTC, shown in UTC like on the site
@@ -70,6 +73,7 @@ export function BugCard({handle, today, facts}: {handle: DocumentHandle; today: 
           </span>
         )}
         {bug.causeTitle && <span className="badge badge--cause">{bug.causeTitle}</span>}
+        {bug.publicReport === 'pending' && <span className="badge badge--report">🗳️ Public report, awaiting approval</span>}
       </p>
       <p className="dates">{lifeLine(bug, daysLeft)}</p>
       {bug.previousLife && <p className="rose-from">Rose from “{bug.previousLife}”</p>}

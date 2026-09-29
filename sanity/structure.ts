@@ -10,6 +10,7 @@ export const structure: StructureResolver = (S) =>
     .title('Graveyard')
     .items([
       S.documentTypeListItem('bug').title('All graves').icon(() => '🪦'),
+      pendingReports(S),
       bugsWithStatus(S, 'zombie', 'Zombies', '🧟'),
       bugsWithStatus(S, 'suspected-dead', 'Suspected dead', '💀'),
       bugsWithStatus(S, 'fix-merged', 'Fix merged', '🩹'),
@@ -36,6 +37,24 @@ function bugsWithStatus(S: StructureBuilder, status: BugStatus, title: string, i
         .params({status})
         .defaultOrdering([{field: '_updatedAt', direction: 'desc'}])
         .initialValueTemplates(status === 'suspected-dead' ? [S.initialValueTemplateItem('bug')] : []),
+    )
+}
+
+// Bugs reported on the site that are still waiting to be approved
+function pendingReports(S: StructureBuilder) {
+  return S.listItem()
+    .id('public-reports')
+    .title('Public reports')
+    .icon(() => '🗳️')
+    .child(
+      S.documentList()
+        .id('public-reports')
+        .title('Public reports (pending)')
+        .schemaType('bug')
+        .apiVersion(apiVersion)
+        .filter('_type == "bug" && publicReport.status == "pending"')
+        .defaultOrdering([{field: '_createdAt', direction: 'desc'}])
+        .initialValueTemplates([]),
     )
 }
 

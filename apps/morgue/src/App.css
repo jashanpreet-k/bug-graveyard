@@ -209,6 +209,11 @@ body {
   font-size: 0.78rem;
 }
 
+.badge--report {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  color: var(--warn);
+}
+
 .dot {
   width: 0.55rem;
   height: 0.55rem;

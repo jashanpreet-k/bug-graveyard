@@ -2,6 +2,7 @@ import {defineField, defineType, getPublishedId} from 'sanity'
 
 import {CORONER_STATUSES} from '../lib/coroner'
 import {EPITAPH_MAX_LENGTH} from '../lib/epitaph'
+import {REPORT_STATUSES} from '../lib/publicReport'
 import {BUG_STATUSES} from '../lib/statuses'
 
 export {EPITAPH_MAX_LENGTH}
@@ -16,6 +17,7 @@ export const bug = defineType({
     {name: 'death', title: 'The Death'},
     {name: 'afterlife', title: 'Afterlife'},
     {name: 'coroner', title: 'Coroner’s report'},
+    {name: 'report', title: 'Public report'},
   ],
   fields: [
     // The Bug
@@ -189,6 +191,28 @@ export const bug = defineType({
       group: 'coroner',
       readOnly: true,
       hidden: ({document}) => !document?.coronerStatus,
+    }),
+
+    // Public report: set when someone reports the bug on the site's report page. A
+    // pending report stays out of the graveyard until someone approves it here.
+    defineField({
+      name: 'publicReport',
+      title: 'Public report',
+      type: 'object',
+      group: 'report',
+      readOnly: true,
+      hidden: ({document}) => !document?.publicReport,
+      description: 'Sent from the site’s “Report a dead bug” page. Approve it with “Accept coroner’s report”.',
+      fields: [
+        defineField({
+          name: 'status',
+          title: 'Status',
+          type: 'string',
+          options: {list: REPORT_STATUSES.map(({title, value}) => ({title, value}))},
+        }),
+        defineField({name: 'whatHappened', title: 'What happened', type: 'text', rows: 3}),
+        defineField({name: 'submittedAt', title: 'Submitted', type: 'datetime'}),
+      ],
     }),
   ],
   preview: {

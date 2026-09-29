@@ -1631,3 +1631,14 @@ credits** in total, one per full test run.
    https://www.sanity.io/@o0zfmcbiy/application/q5vfdrceno9068twj9vsvcmn, and its app
    ID is saved as `deployment.appId` in `apps/morgue/sanity.cli.ts`. Headless Chrome
    opened it there with live data (16 buried, 2 walking).
+4. **The DEV post** got a new section, "Reaching past the Studio: Functions & the AI
+   Coroner", with three points (gravedigger, coroner, "a person decides"), the
+   Coroner's report screenshot (captioned as test bugs) and one line on testing. It also
+   says the Morgue is now deployed, and lists `functions/` and `sanity.blueprint.ts`
+   under "Where to look".
+   - The update went through the API only after checking that the live post matched
+     the last version I published.
+   - The new DEV key was read from `.env.local` and never printed, and its line was
+     deleted afterwards.
+   - Checked logged out: the new section is there, all 7 images load, and the agent
+     session embed still renders.

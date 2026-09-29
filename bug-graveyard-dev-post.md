@@ -78,6 +78,7 @@ Where to look:
 - `sanity/lib/queries.ts`: every GROQ query, typed with Sanity TypeGen
 - `sanity/components/TombstoneView.tsx` and `components/Tombstone.tsx`: the Studio view and the stone it shares with the site
 - `apps/morgue/`: the Morgue, an App SDK app (see below)
+- `functions/` and `sanity.blueprint.ts`: the gravedigger and coroner Sanity Functions (see below)
 - `NOTES.md`: the phase-by-phase build log this post is based on
 
 ## My Build Process
@@ -146,7 +147,21 @@ After publishing this post, I had Claude Code build **the Morgue**: a small App 
 - **Tested in the real Dashboard:** 18 checks on temporary test bugs, all deleted afterwards.
 - **One surprise:** the Sanity CLI looks for a Studio config in every parent folder before it looks for an app config. Inside this repo, whose root holds the embedded Studio's config, `sanity build` built the site's Studio instead. The app's npm scripts now run the CLI from a mirror folder outside the repo.
 
-The code is in [`apps/morgue`](https://github.com/jashanpreet-k/bug-graveyard/tree/main/apps/morgue). I haven't deployed it: an App SDK app only opens for members of the project's organization, so for judges the GIF and the code are what's visible.
+The code is in [`apps/morgue`](https://github.com/jashanpreet-k/bug-graveyard/tree/main/apps/morgue). It's deployed to my organization's Sanity Dashboard, which only members of the organization can open, so for judges the GIF and the code are what's visible.
+
+### Reaching past the Studio: Functions & the AI Coroner
+
+Next came two [Sanity Functions](https://www.sanity.io/docs/functions), deployed with a Blueprint:
+
+- **The gravedigger** is a scheduled function that runs every day at 00:15 UTC. It buries every bug whose fix has held for 7 days, using the same rules file as the Studio's "Declare buried" and the Morgue, and it skips bugs with unpublished Studio changes. (Once a day is also the most often a scheduled function can run on the Free plan.)
+- **The coroner** is a document function. When a bug is published as suspected dead with no epitaph, it asks an Agent Action (Prompt) for a short epitaph in the style of the existing graves, plus a cause of death chosen from the real ones. It writes that only into separate `coroner…` fields, marked "awaiting approval".
+- **A person decides.** A new **✅ Accept coroner's report** document action shows the suggestion and copies it into the real fields only when you click Accept. The AI never touches the real epitaph and never publishes anything on its own.
+
+![The Studio's "Coroner's report" tab for a new bug: report status "Awaiting approval", the suggested epitaph "Paid once. Charged for the encore." and the suggested cause "Race condition", with the Accept popover open](https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/docs/post/coroner.png)
+
+*A coroner's report waiting for approval. The bugs in the list are temporary test bugs that were deleted afterwards.*
+
+Both functions were tested with Sanity's local runner against the real dataset first: 23 checks on temporary bugs, including a forced gravedigger run. Then the deployed coroner filed its first report in the cloud about 4.5 seconds after a test bug was published.
 
 ## Sanity Project Details
 

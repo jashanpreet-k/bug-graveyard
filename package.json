@@ -10,6 +10,8 @@
     "typegen": "sanity schemas extract && sanity typegen generate"
   },
   "dependencies": {
+    "@sanity/client": "^7.27.0",
+    "@sanity/functions": "^1.8.0",
     "@sanity/image-url": "^2.1.1",
     "@sanity/vision": "^5.31.2",
     "next": "16.3.6",
@@ -20,6 +22,7 @@
     "styled-components": "^6.5.3"
   },
   "devDependencies": {
+    "@sanity/blueprints": "^0.27.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

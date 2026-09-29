@@ -1457,3 +1457,145 @@ Everything was deleted afterwards: 18 bugs, 0 drafts, 0 test documents.
   `sanity/lib/lifecycle.ts`, so "a fix must hold 7 days" can't drift between them.
 - **App SDK apps and a root-level Studio config don't mix** without a workaround (see
   above), which matters for any Next.js project with an embedded Studio.
+
+---
+
+## Phase 11: Sanity Functions and the AI coroner (2026-09-29)
+
+### What I asked for
+
+Two self-contained features on a `functions` branch, without breaking anything live,
+shown to me before any merge or deploy:
+1. First, check the current docs for Functions (Blueprints) and Agent Actions: whether
+   they're available on my free plan, their quotas, and how to deploy. Tell me honestly.
+2. **The gravedigger:** a scheduled function that runs daily and buries every bug whose
+   fix has held for 7 days (the same `BURIAL_WAIT_DAYS` rule), setting `buriedAt` to
+   today (UTC) and logging what it buried.
+3. **The coroner:** a document function that, when a new bug is created as suspected
+   dead with no epitaph, uses an Agent Action to draft a funny epitaph (at most 140
+   characters, in the style of the existing graves) and suggest a cause of death from
+   the existing ones. It writes the suggestion to new fields (`coronerEpitaph`,
+   `coronerCause`, `coronerStatus: "awaiting approval"`), and a "✅ Accept coroner's
+   report" action in the Studio copies it into the real fields. The AI never publishes
+   on its own.
+4. Test both end to end with temporary bugs (deleted afterwards), including a forced run
+   of the gravedigger, then build, lint, type-check and write this entry.
+
+### What the docs said (checked before building)
+
+- **My project isn't on the Free plan yet.** `GET /v1/subscriptions/project/rzjmw6lg`
+  says "Growth Trial", status `trialing`, until 2026-10-28. After that it drops to Free
+  unless I upgrade.
+- **Both features are on the Free plan too** (the pricing page, "Compute & AI (per
+  organization)"):
+  - **Functions:** 500K invocations and 20K GB-seconds a month, with no paid overage on
+    Free.
+  - **Scheduled functions:** up to 5, and at most **daily** on Free (hourly on Growth).
+  - **Agent Actions:** included, with **1,000 AI credits a month**. Each Agent Action
+    request costs 1 credit ($0.05), and Free can't buy more: AI pauses until the next
+    month.
+  - My organization has AI features enabled (`aiFeaturesStatus: "enabled"`).
+- **Agent Actions are marked experimental,** use API version `vX`, and need a deployed
+  schema for the actions that write documents. They don't write `readOnly` or `hidden`
+  fields, and writing references needs the deprecated Embeddings Index API. Prompt
+  avoids all of that: it only returns text or JSON, so it needs no schema, and the
+  function writes the fields itself.
+- **Deploying:** `npx sanity@latest blueprints deploy`, from a stack that
+  `blueprints init` creates remotely. Scheduled functions need an organization-scoped
+  stack, which needs the organization admin role (me).
+  - A document function gets an editor-role robot token automatically.
+  - A scheduled function needs one defined in the blueprint.
+  - The `@sanity/blueprints` 0.27.0 types still label `defineScheduledFunction` "@alpha
+    … not available publicly yet", while the docs launched Scheduled Functions on
+    2026-05-07. Only a deploy will tell.
+
+### What was built (branch `functions`, not merged, nothing deployed)
+
+- `sanity.blueprint.ts`: a robot token for the gravedigger (editor on this project only),
+  the scheduled `gravedigger` (`15 0 * * *` UTC, timeout 60s) and the document function
+  `coroner` (on `create`, filter `_type == "bug" && status == "suspected-dead" &&
+  (!defined(epitaph) || epitaph == "") && !defined(coronerStatus)`, dataset
+  `rzjmw6lg.production`)
+- `functions/gravedigger/index.ts`:
+  - It uses `burialCutoff` to narrow the query, then `daysUntilBurial(...) === 0` to
+    decide, both from `sanity/lib/lifecycle.ts`.
+  - Each burial is an `ifRevisionId` patch on the published bug.
+  - It skips bugs with a draft or release version, and `DRY_RUN=1` only logs.
+- `functions/coroner/index.ts`:
+  - It re-checks the bug first, then fetches the causes of death and 12 real graves'
+    epitaphs as style examples.
+  - It calls `client.agent.action.prompt` (format JSON, temperature 0.8), with one
+    retry if the epitaph is too long and a word-boundary cut as a last resort.
+  - It keeps a cause only if it's a real cause ID, and writes the report with
+    `setIfMissing`, so a report is never overwritten.
+- `sanity/actions/coroner.tsx`: "✅ Accept coroner's report".
+  - It's shown only while a report is awaiting approval.
+  - Its confirm popover shows the suggested epitaph and cause.
+  - Accepting copies them into `epitaph` and `causeOfDeath` and sets `coronerStatus:
+    "accepted"`, in one revision-guarded patch on the published bug.
+  - Like the lifecycle actions (whose `blockedBecause` and `useRun` it now shares), it
+    waits while there's a draft.
+- `sanity/schemaTypes/bug.ts`: a "Coroner's report" group with the three read-only
+  fields, hidden until there's a report
+- `sanity/lib/coroner.ts` (the two report statuses), `sanity/lib/epitaph.ts` (the
+  140-character limit, moved out of the schema file so the function doesn't bundle
+  `sanity`), `burialCutoff` added to `sanity/lib/lifecycle.ts` (the Morgue uses it too)
+- `package.json`: `@sanity/client` ^7.27.0 and `@sanity/functions` ^1.8.0, plus
+  `@sanity/blueprints` ^0.27.0 as a dev dependency (next, sanity and next-sanity
+  unchanged)
+- `.gitignore`, `eslint.config.mjs`, `.vercelignore`: skip `functions/*/.build`; Vercel
+  skips `functions` and the blueprint
+- `README.md`: a Functions section; `docs/post/coroner.png`; regenerated TypeGen types
+
+**End-to-end test, 23/23 checks passed.** The functions ran through Sanity's local runner
+(`npx sanity@latest functions test … --with-user-token`), which bundles them like a
+deploy, against the real dataset. The Accept action was clicked in the branch's Studio
+(`next start` on port 3333). Seven temporary bugs, one of them with a draft:
+- **Gravedigger, dry run:** it listed the two due bugs, left the one with a draft, and
+  changed nothing.
+- **Gravedigger, forced run:** it buried the bugs whose fixes were 8 and exactly 7 days
+  old, with `buriedAt` 2026-09-29 and no drafts. It left the 6-day-old one, the one with
+  a draft (the draft untouched) and the one with no fix date. The 16 real buried graves
+  were unchanged. (Before the test, no real bug was fix-merged or suspected dead.)
+- **Coroner:** it filed "Paid once. Charged for the encore." with the cause Race
+  condition for "Checkout button that charged twice" (the first run's suggestion was
+  "Paid once. Charged twice. Now permanently declined."). The real `epitaph` and
+  `causeOfDeath` stayed empty. A second run and a bug that already had an epitaph were
+  both stopped by the event filter.
+- **Studio:** no action on a bug without a report. On the reported bug, the "Coroner's
+  report" tab showed the suggestion, the popover showed the epitaph and cause, and
+  Accept copied both into the real fields, marked the report accepted and left no
+  draft.
+
+Everything was deleted afterwards (0 test documents left). The coroner used **2 AI
+credits** in total, one per full test run.
+
+### What went wrong and how we fixed it
+
+- **The test looked for a modal and waited forever.** Sanity shows a document action's
+  `type: 'confirm'` dialog as a popover next to the button
+  (`confirm-popover-confirm-button`), not as a `[role="dialog"]`.
+- **"A second run skips it" failed at first,** but the function was right. The local
+  runner applies the blueprint's event filter first ("Filter … returned an empty result.
+  Skipping invoke."), so the function never ran; the check now accepts either guard.
+- **`functions test` leaves bundled output** in `functions/<name>/.build/`. It's now
+  ignored by git, ESLint and Vercel. (It did show the shared `lifecycle.ts` code bundled
+  into the gravedigger, so relative imports outside the function folder work.)
+- **Local runs need flags.** Without `--dataset`, `--project-id` and `--with-user-token`,
+  `context.clientOptions` has no dataset and no token. The gravedigger falls back to its
+  own project and dataset constants, because scheduled functions aren't tied to one.
+
+### Sanity notes for the write-up
+
+- **Functions make the lifecycle move by itself** without any server of mine. The
+  7-day rule now lives in one file used by the Studio action, the Morgue app and the
+  gravedigger.
+- **Human-in-the-loop AI:** the Agent Action only suggests, into separate fields. A
+  person reads the suggestion in the Studio and accepts it with a document action. The
+  blueprint's event filter (`!defined(coronerStatus)`) plus `setIfMissing` make it
+  run once per bug.
+- **Prompt is the most flexible Agent Action for this:** JSON out, no schema needed, and
+  the model is given the real causes of death by ID, so it can only pick one that
+  exists.
+- **Functions can be tested locally against real data** with the same bundling, filters
+  and projections as a deploy, before anything is deployed.

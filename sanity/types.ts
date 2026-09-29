@@ -56,6 +56,9 @@ export type Bug = {
   epitaph?: string;
   previousLife?: BugReference;
   timesResurrected?: number;
+  coronerStatus?: "awaiting approval" | "accepted";
+  coronerEpitaph?: string;
+  coronerCause?: CauseOfDeathReference;
 };
 
 export type CauseOfDeath = {

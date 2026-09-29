@@ -1,9 +1,10 @@
 import {defineField, defineType, getPublishedId} from 'sanity'
 
+import {CORONER_STATUSES} from '../lib/coroner'
+import {EPITAPH_MAX_LENGTH} from '../lib/epitaph'
 import {BUG_STATUSES} from '../lib/statuses'
 
-/** Longest epitaph that fits on a tombstone. */
-export const EPITAPH_MAX_LENGTH = 140
+export {EPITAPH_MAX_LENGTH}
 
 export const bug = defineType({
   name: 'bug',
@@ -14,6 +15,7 @@ export const bug = defineType({
     {name: 'bug', title: 'The Bug'},
     {name: 'death', title: 'The Death'},
     {name: 'afterlife', title: 'Afterlife'},
+    {name: 'coroner', title: 'Coroner’s report'},
   ],
   fields: [
     // The Bug
@@ -155,6 +157,38 @@ export const bug = defineType({
       initialValue: 0,
       description: 'How many times this bug has come back from the dead. Updated automatically.',
       validation: (rule) => rule.min(0).integer(),
+    }),
+
+    // Coroner's report: written by the `coroner` Sanity Function, copied into the real
+    // fields only by the "Accept coroner's report" action. Hidden until there is one.
+    defineField({
+      name: 'coronerStatus',
+      title: 'Report status',
+      type: 'string',
+      group: 'coroner',
+      readOnly: true,
+      hidden: ({document}) => !document?.coronerStatus,
+      options: {list: CORONER_STATUSES.map(({title, value}) => ({title, value}))},
+    }),
+    defineField({
+      name: 'coronerEpitaph',
+      title: 'Suggested epitaph',
+      type: 'text',
+      rows: 2,
+      group: 'coroner',
+      readOnly: true,
+      hidden: ({document}) => !document?.coronerStatus,
+      description: 'Drafted by AI. It only becomes the epitaph if someone accepts the report.',
+      validation: (rule) => rule.max(EPITAPH_MAX_LENGTH),
+    }),
+    defineField({
+      name: 'coronerCause',
+      title: 'Suggested cause of death',
+      type: 'reference',
+      to: [{type: 'causeOfDeath'}],
+      group: 'coroner',
+      readOnly: true,
+      hidden: ({document}) => !document?.coronerStatus,
     }),
   ],
   preview: {

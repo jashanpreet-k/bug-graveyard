@@ -257,6 +257,38 @@
           "type": "number"
         },
         "optional": true
+      },
+      "coronerStatus": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "union",
+          "of": [
+            {
+              "type": "string",
+              "value": "awaiting approval"
+            },
+            {
+              "type": "string",
+              "value": "accepted"
+            }
+          ]
+        },
+        "optional": true
+      },
+      "coronerEpitaph": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "string"
+        },
+        "optional": true
+      },
+      "coronerCause": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "inline",
+          "name": "causeOfDeath.reference"
+        },
+        "optional": true
       }
     }
   },

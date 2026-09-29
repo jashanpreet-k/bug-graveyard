@@ -8,6 +8,7 @@ import {visionTool} from '@sanity/vision'
 import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
 
+import {AcceptCoronerReportAction} from './sanity/actions/coroner'
 import {lifecycleActions} from './sanity/actions/lifecycle'
 // Go to https://www.sanity.io/docs/api-versioning to learn how API versioning works
 import {apiVersion, dataset, projectId} from './sanity/env'
@@ -27,11 +28,17 @@ export default defineConfig({
     visionTool({defaultApiVersion: apiVersion}),
   ],
   document: {
-    // Bugs get the lifecycle actions right after Publish; Sanity's own actions stay.
+    // Bugs get the lifecycle actions and the coroner's report right after Publish;
+    // Sanity's own actions stay.
     actions: (prev, {schemaType}) => {
       if (schemaType !== 'bug') return prev
       const afterPublish = prev.findIndex((action) => action.action === 'publish') + 1
-      return [...prev.slice(0, afterPublish), ...lifecycleActions, ...prev.slice(afterPublish)]
+      return [
+        ...prev.slice(0, afterPublish),
+        AcceptCoronerReportAction,
+        ...lifecycleActions,
+        ...prev.slice(afterPublish),
+      ]
     },
   },
 })

@@ -34,6 +34,11 @@ Live: **https://bug-graveyard.vercel.app** · Built with Next.js + Sanity for th
   and a signed Sanity webhook refreshes the cache when nobody has the site open.
 - **Share images.** Every grave gets its own Open Graph image with its tombstone, made
   with `next/og`.
+- **Sanity Functions.** The *gravedigger*, a scheduled function, runs daily and buries
+  every bug whose fix has held for 7 days. The *coroner*, a document function, uses an
+  Agent Action to draft an epitaph and a cause of death for each new suspected-dead bug;
+  a person accepts it in the Studio with **✅ Accept coroner's report**. See
+  [Functions](#functions).
 - **The Morgue, an App SDK app.** A live board in the Sanity Dashboard of every bug that
   isn't resting yet (suspected dead, walking, waiting, ready to bury), with the same
   lifecycle actions on each card. See [`apps/morgue`](apps/morgue).
@@ -137,6 +142,30 @@ Deploy to Vercel with the same three environment variables, keeping
   - Filter: `_type in ["bug", "language", "causeOfDeath"]`
   - Projection: `{_id, _type}`
   - Secret: the same `SANITY_REVALIDATE_SECRET`
+
+## Functions
+
+Two [Sanity Functions](https://www.sanity.io/docs/functions), defined in
+[`sanity.blueprint.ts`](sanity.blueprint.ts) and deployed to Sanity (not Vercel):
+
+- **`functions/gravedigger`** (scheduled, daily at 00:15 UTC): sets `status: buried` and
+  `buriedAt` on every published bug whose fix merged at least 7 days ago, using the same
+  rules as the Studio (`sanity/lib/lifecycle.ts`). It skips bugs with unpublished changes.
+- **`functions/coroner`** (on create): when a bug is published as suspected dead with no
+  epitaph, it asks the Agent Actions Prompt for a funny epitaph (at most 140 characters,
+  in the style of the existing graves) and a cause of death from the existing ones. It
+  writes them only to `coronerEpitaph`, `coronerCause` and `coronerStatus: "awaiting
+  approval"`. The real fields change only when a person accepts the report.
+
+```bash
+npx sanity@latest functions test gravedigger --project-id <id> --dataset production --with-user-token
+DRY_RUN=1 npx sanity@latest functions test gravedigger ...   # log only
+npx sanity@latest functions test coroner --document-id <bug-id> --project-id <id> --dataset production --with-user-token
+npx sanity@latest blueprints deploy
+```
+
+Each coroner report uses one AI credit. On the Free plan, scheduled functions can run at
+most daily.
 
 ## About the graves
 

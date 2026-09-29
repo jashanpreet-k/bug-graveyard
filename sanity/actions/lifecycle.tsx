@@ -29,7 +29,7 @@ type Bug = SanityDocument & {
 // The actions change the published bug directly, in one mutation, so they never
 // leave a draft behind. That only works while the published version is all
 // there is: unpublished edits would later overwrite the new status.
-function blockedBecause({published, draft, version}: DocumentActionProps) {
+export function blockedBecause({published, draft, version}: DocumentActionProps) {
   if (version) return 'Lifecycle actions work on the published bug, not on a release version'
   if (!published) return 'Publish this bug first'
   if (draft) return 'Publish or discard your changes first'
@@ -37,7 +37,7 @@ function blockedBecause({published, draft, version}: DocumentActionProps) {
 }
 
 // Runs an action's work, reporting failures in a dialog instead of failing silently.
-function useRun(onComplete: () => void) {
+export function useRun(onComplete: () => void) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

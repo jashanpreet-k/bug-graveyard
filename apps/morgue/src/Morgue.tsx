@@ -1,7 +1,7 @@
 import {Suspense, useEffect, useState} from 'react'
 import {useDocuments} from '@sanity/sdk-react'
 
-import {BURIAL_WAIT_DAYS, todayUTC} from '../../../sanity/lib/lifecycle'
+import {BURIAL_WAIT_DAYS, burialCutoff, todayUTC} from '../../../sanity/lib/lifecycle'
 import {BugCard} from './BugCard'
 import {type BoardFacts, useBoardFacts} from './facts'
 
@@ -52,14 +52,6 @@ const COLUMNS: Column[] = [
     filter: 'status == "fix-merged" && fixMergedAt <= $cutoff',
   },
 ]
-
-const DAY_MS = 24 * 60 * 60 * 1000
-
-// A fix that merged on or before this date has held for the full wait
-// (the same condition as `daysUntilBurial(...) === 0`).
-function burialCutoff(today: string) {
-  return new Date(Date.parse(today) - BURIAL_WAIT_DAYS * DAY_MS).toISOString().slice(0, 10)
-}
 
 // Today's UTC date, moving on at midnight UTC while the Morgue stays open.
 function useToday() {

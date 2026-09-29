@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Sanity Functions build output (sanity functions test / blueprints deploy)
+functions/*/.build

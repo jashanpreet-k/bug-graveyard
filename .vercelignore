@@ -5,3 +5,6 @@
 node_modules
 # The Morgue runs in the Sanity Dashboard, not on Vercel
 apps
+# Sanity Functions deploy to Sanity with `blueprints deploy`, not to Vercel
+functions
+sanity.blueprint.ts

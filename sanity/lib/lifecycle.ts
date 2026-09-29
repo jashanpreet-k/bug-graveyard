@@ -1,5 +1,5 @@
-// The rules of a bug's life, used by the Studio's lifecycle actions and by the Morgue
-// App SDK app (apps/morgue).
+// The rules of a bug's life, used by the Studio's lifecycle actions, the Morgue App SDK
+// app (apps/morgue) and the gravedigger Sanity Function (functions/gravedigger).
 // Dates are "YYYY-MM-DD" strings in UTC, like everywhere else in the app.
 
 /** How long a fix must hold, in days, before its bug can be declared buried. */
@@ -20,6 +20,11 @@ export function daysBetween(from: string, to: string) {
 /** Days left before a bug whose fix merged on `fixMergedAt` can be buried; 0 means now. */
 export function daysUntilBurial(fixMergedAt: string, today = todayUTC()) {
   return Math.max(0, BURIAL_WAIT_DAYS - daysBetween(fixMergedAt, today))
+}
+
+/** The last fix date that has held long enough: a fix merged on or before it can be buried today. */
+export function burialCutoff(today = todayUTC()) {
+  return new Date(Date.parse(today) - BURIAL_WAIT_DAYS * DAY_MS).toISOString().slice(0, 10)
 }
 
 /** "Timezone bug (Zombie #1)" → "Timezone bug (Zombie #2)": zombies keep the original name. */

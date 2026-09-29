@@ -1109,3 +1109,142 @@ language.
   webhook keep the running site fresh, but `generateStaticParams` at build time needs
   its own fresh read (`cache: 'no-store'`), or a build can prerender content that no
   longer exists.
+
+---
+
+## Bonus investigation: Sanity Workflows and the App SDK (2026-09-29)
+
+### What I asked for
+
+With a 3-hour time box and nothing that works allowed to break: find out honestly
+whether Sanity Workflows is usable on my project and plan, and what it would take to
+model the bug lifecycle (suspected dead → fix merged → buried → zombie) as a Workflow
+while keeping the existing document actions. Build it on a separate branch if it fits
+in 3 hours; otherwise propose the smallest App SDK app (a "Morgue" dashboard). Don't
+deploy. Record the findings here.
+
+### Verdict
+
+**Workflows is usable on this project and plan today, but a proper integration
+doesn't fit in 3 hours.** What I built instead is a working proof of the model on a
+separate branch, `explore/workflows` (local, not merged, not pushed).
+
+The facts, from the current docs (`npx sanity@latest docs read /docs/workflows/...`)
+and npm:
+- **It's in early access.** The packages are at 0.35.0, still pre-1.0, and a minor
+  version can break things.
+- **It's a library plus a CLI, and it stores definitions and instances as ordinary
+  documents.** No plan gate is mentioned anywhere, so the free plan works. Only
+  Enterprise user attributes, and how often Scheduled Functions may run, depend on
+  the plan.
+- **The Studio plugin needs Sanity Studio 6.15 or later** (`@sanity/workflow-studio`
+  requires `sanity ^6`), and this project runs Sanity 5.31.
+- **"You run the runtime."** Nothing moves by itself. Effects (for example, writing
+  `status` back onto the bug) need a runtime you operate, such as a Sanity Function
+  deployed with a Blueprint and a robot token, a server, or the CLI while developing.
+  The generated runtimes are marked experimental.
+- **Every engine check is advisory, and guards aren't enforced** by the Content Lake
+  yet. They grey out buttons; they don't stop writes.
+- **Deploying shares the definitions with Sanity by default.** `--no-share-defs` opts
+  out.
+- **There's a dependency conflict.** The Workflows CLI's `@sanity/workflow-blueprint`
+  optionally needs TypeScript 6 or 7, while this project's `typescript-eslint` 8 needs
+  TypeScript below 6.1. TypeScript 6.0.x would satisfy both; the experiment used
+  `--legacy-peer-deps` instead.
+- **The docs search command is broken right now:** `npx sanity docs search` fails with
+  "Invalid response format from documentation search API". `docs read <path>` works.
+
+### What was built (branch `explore/workflows`, 2 commits)
+
+1. **The Sanity 6 upgrade.** `sanity` and `@sanity/vision` moved to 6.16, alongside
+   next-sanity 13.3. Only two small changes were needed: `sanity schemas extract` now
+   needs `--force` to overwrite, and TypeGen's new global query registry trips an
+   ESLint rule, so the generated types file is ignored. The type-check, lint, schema
+   validation (0 errors) and production build all pass. A read-only Studio smoke test
+   found the custom sidebar, the Tombstone view (after the document loads) and the
+   lifecycle menus on real graves all correct, with no errors. **Not yet tested on
+   v6:** clicking the lifecycle actions, which write data.
+2. **The lifecycle as a Workflow** (`workflows/bug-lifecycle.ts`,
+   `sanity.workflow.ts`):
+   - **Two definitions:** `bug-lifecycle` starts at *suspected dead* and
+     `zombie-lifecycle` starts at *walking*.
+   - **From there:** → *fix merged*. There, "Declare buried" is gated by a requirement,
+     `dateTime($now) >= dateTime($fields.fixMergedAt) + 7 days` (reusing
+     `BURIAL_WAIT_DAYS`), while "Report resurrection" stays available → *buried* →
+     *risen* (terminal; the zombie runs its own instance).
+   - **Each exit action stamps its own date,** so each transition's `when` knows which
+     one fired.
+   - **One lifecycle per bug,** via a `singleSubject` start requirement.
+   - `npx sanity-workflows deploy --check` passes for both definitions, without
+     contacting the dataset.
+   - **4 vitest tests pass against the real engine in memory**
+     (`@sanity/workflow-engine-test`, controlled clock):
+     - the full path, with burial refused (`ActionDisabledError`) until exactly 7
+       days, then allowed;
+     - a regression before burial going to *risen*;
+     - a zombie starting as *walking*;
+     - one lifecycle per bug.
+
+### What a real integration would take (roughly 1.5 to 2 days)
+
+1. Merge the Sanity 6 upgrade after running the lifecycle-action end-to-end test on v6
+   (about 1 hour), and settle the TypeScript peer conflict with TypeScript 6.0.x
+   (about 30 minutes).
+2. **Decide which copy of the status is the source of truth; this is the hard part.**
+   Right now `status`, `fixMergedAt` and `buriedAt` live on the bug, and the site reads
+   them there. There are two options:
+   - **The workflow drives, and effects write the bug's fields.** This needs an effect
+     drainer (a Sanity Function, a Blueprint and a robot token) and is half a day or
+     more.
+   - **The bug stays authoritative, and each document action also fires the matching
+     Workflow action.** This takes 2–3 hours, but two copies of the state can drift
+     apart.
+3. Deploy the definitions to a separate `workflows` dataset. Start instances for the
+   18 existing graves in the right stage (with the `set-stage` admin command), and for
+   new bugs (the Studio's create flow, or a Function). About 1–2 hours.
+4. Add a UI: the Studio plugin (needs Sanity 6), or a Workflows screen in an App SDK
+   app via `@sanity/workflow-sdk` / `@sanity/workflow-react`, which only need React
+   19. About 2–3 hours.
+5. End-to-end tests. About 1–2 hours.
+
+### Proposal instead: a "Morgue" App SDK app (about 2–3 hours, not built)
+
+- **What:** a small real-time dashboard in the Sanity Dashboard. Its columns would be:
+  - **"Ready to bury today":** fix merged at least 7 days ago;
+  - **"Waiting":** fix merged, with "can bury in N days";
+  - **"Walking zombies";**
+  - **"Suspected dead".**
+  Each card would have one-click **Mark fix merged / Declare buried / Report
+  resurrection** buttons (with the same confirm dialog), updating live as anyone
+  changes a bug.
+- **How:** scaffold it in `apps/morgue/` with `npx sanity@latest init --template
+  app-quickstart`, pointed at `rzjmw6lg/production`. Run it with `npm run dev`; it
+  opens inside the Sanity Dashboard.
+  - **One copy of the logic:** the lifecycle rules already live in the plain module
+    `sanity/lib/lifecycle.ts`. Moving the mutations out of the Studio actions into a
+    shared module would let the Studio and the Morgue run the same code.
+  - **No Studio upgrade needed.**
+  - **Deploying later** would be one command, `npx sanity deploy --title "Morgue"`,
+    once approved.
+- **Why this one:** it earns the App SDK bonus without touching anything that works.
+  Later, the same app could host the Workflows interface (`@sanity/workflow-sdk`) once
+  the source-of-truth question is settled.
+
+### Sanity notes for the write-up
+
+- **Workflows puts a process next to the content, as data:**
+  - a *definition* (stages, activities, actions, transitions);
+  - *instances*, each a run pinned to a definition version;
+  - *conditions* written in GROQ over the instance and its subject document.
+
+  An agent (over the Workflows MCP server) and a person (in the Studio or an app) move
+  it through the same actions.
+- **A rule like "the fix must hold 7 days" needs no timer.** It's a GROQ requirement
+  against `$now`, checked when someone asks. Only automatic transitions need a `tick`
+  from a runtime.
+- **You can test a workflow without a project.** `@sanity/workflow-engine-test` runs
+  the real engine in memory with a clock you control, so the 7-day rule was tested by
+  moving the clock forward 6 days, then 1 more.
+- **Early access means advice, not enforcement.** Disabled actions and guards shape
+  the UI, but anything with a write token can bypass them until the Content Lake
+  enforces guards.

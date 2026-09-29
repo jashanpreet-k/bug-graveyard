@@ -406,8 +406,7 @@ export type GRAVEYARD_FILTERS_QUERY_RESULT = {
 };
 
 // Query TypeMap
-import "@sanity/client";
-declare module "@sanity/client" {
+declare global {
   interface SanityQueries {
     '\n  *[_type == "bug"\n    && (!defined($language) || language->name == $language)\n    && (!defined($cause) || causeOfDeath->title == $cause)\n  ] | order(coalesce(buriedAt, fixMergedAt, bornAt) desc, name asc) {\n    _id,\n    name,\n    "slug": slug.current,\n    status,\n    epitaph,\n    bornAt,\n    fixMergedAt,\n    buriedAt,\n    language->{name, color},\n    causeOfDeath->{title},\n    "previousLife": previousLife->{name},\n    "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0\n  }\n': GRAVEYARD_QUERY_RESULT;
     '\n  *[_type == "bug" && slug.current == $slug][0] {\n    _id,\n    name,\n    "slug": slug.current,\n    status,\n    severity,\n    epitaph,\n    killedBy,\n    hoursToKill,\n    bornAt,\n    fixMergedAt,\n    buriedAt,\n    timesResurrected,\n    language->{name, color},\n    causeOfDeath->{title, description},\n    "previousLife": previousLife->{\n      name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n      "previousLife": previousLife->{\n        name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n        "previousLife": previousLife->{\n          name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n          "hasOlderLives": defined(previousLife)\n        }\n      }\n    },\n    "risen": *[_type == "bug" && previousLife._ref == ^._id] | order(bornAt asc) {\n      name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n      "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0\n    }\n  }\n': GRAVE_QUERY_RESULT;
@@ -416,4 +415,8 @@ declare module "@sanity/client" {
     '\n  *[_type == "bug" && defined(slug.current)] {"slug": slug.current}\n': GRAVE_SLUGS_QUERY_RESULT;
     '{\n  "languages": *[_type == "language"] | order(name asc) {\n    name,\n    color,\n    "count": count(*[_type == "bug" && language._ref == ^._id])\n  },\n  "causes": *[_type == "causeOfDeath"] | order(title asc) {\n    title,\n    "count": count(*[_type == "bug" && causeOfDeath._ref == ^._id])\n  }\n}': GRAVEYARD_FILTERS_QUERY_RESULT;
   }
+}
+// Lets @sanity/client releases that predate the global registry read it too
+declare module "@sanity/client" {
+  interface SanityQueries extends globalThis.SanityQueries {}
 }

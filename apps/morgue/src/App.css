@@ -1,0 +1,356 @@
+/* The site's graveyard palette (app/(site)/globals.css) and its gothic display font */
+@import url('https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@500;700&family=Geist:wght@400;500;600&display=swap');
+
+:root {
+  --night: #070a14;
+  --crypt: #10162a;
+  --stone: #1a2136;
+  --line: #2b3350;
+  --bone: #e9e6dc;
+  --muted: #a9adbb;
+  --moss: #8dff9f;
+  --zombie: #1baf7a;
+  --blood: #ff8a8a;
+  --warn: #f5c56b;
+
+  color-scheme: dark;
+  background: var(--night);
+  color: var(--bone);
+  font-family: Geist, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(ellipse at top right, #141b33 0%, var(--night) 55%) fixed;
+  min-height: 100vh;
+}
+
+.loading {
+  padding: 2rem;
+  color: var(--muted);
+}
+
+.morgue {
+  padding: 1.75rem clamp(1rem, 3vw, 2.5rem) 3rem;
+}
+
+.morgue-header {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.morgue-header h1 {
+  margin: 0;
+  font-family: 'Grenze Gotisch', serif;
+  font-weight: 700;
+  font-size: clamp(2.2rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.tagline {
+  max-width: 44rem;
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+}
+
+.buried-count {
+  margin: 0;
+  text-align: right;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+
+.buried-count strong {
+  display: block;
+  color: var(--bone);
+  font-family: 'Grenze Gotisch', serif;
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(14rem, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .board {
+    grid-template-columns: repeat(2, minmax(14rem, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .board {
+    grid-template-columns: 1fr;
+  }
+  .morgue-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .buried-count {
+    text-align: left;
+  }
+}
+
+.column {
+  background: color-mix(in srgb, var(--crypt) 85%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1rem;
+  min-height: 12rem;
+}
+
+.column[data-column='walking'] {
+  border-color: color-mix(in srgb, var(--zombie) 45%, var(--line));
+}
+
+.column[data-column='ready'] {
+  border-color: color-mix(in srgb, var(--bone) 35%, var(--line));
+}
+
+.column-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  margin-bottom: 0.75rem;
+}
+
+.column-header h2 {
+  margin: 0;
+  font-family: 'Grenze Gotisch', serif;
+  font-weight: 500;
+  font-size: 1.5rem;
+}
+
+.count {
+  min-width: 1.8rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: var(--stone);
+  text-align: center;
+  font-weight: 600;
+}
+
+.hint {
+  grid-column: 1 / -1;
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.empty {
+  margin: 1.5rem 0;
+  color: var(--muted);
+  font-style: italic;
+  text-align: center;
+}
+
+.cards {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  padding: 0.85rem 0.9rem;
+  border-radius: 12px 12px 6px 6px;
+  background: linear-gradient(180deg, #4a5061 0%, #353a4a 100%);
+  border: 1px solid #5a6072;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 35%);
+}
+
+.card[data-status='zombie'] {
+  background: linear-gradient(180deg, #3d5244 0%, #2b3a31 100%);
+  border-color: color-mix(in srgb, var(--moss) 45%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--zombie) 35%, transparent);
+}
+
+.card--loading {
+  min-height: 8rem;
+  opacity: 0.4;
+}
+
+.card h3 {
+  margin: 0 0 0.4rem;
+  font-family: 'Grenze Gotisch', serif;
+  font-weight: 500;
+  font-size: 1.3rem;
+  line-height: 1.15;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.45rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 30%);
+  font-size: 0.78rem;
+}
+
+.dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.dates,
+.rose-from {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #d3d1c8;
+}
+
+.rose-from {
+  color: var(--moss);
+  font-style: italic;
+}
+
+.epitaph {
+  margin: 0.45rem 0 0;
+  font-family: Georgia, serif;
+  font-style: italic;
+  color: var(--bone);
+}
+
+.actions {
+  margin-top: 0.75rem;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.btn {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid #6b7185;
+  border-radius: 8px;
+  background: #262c3f;
+  color: var(--bone);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  background: #31384f;
+}
+
+.btn:focus-visible,
+.more:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--moss);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.btn--primary:not(:disabled) {
+  border-color: var(--bone);
+  background: var(--bone);
+  color: var(--night);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: #fff;
+}
+
+.btn--critical:not(:disabled) {
+  border-color: color-mix(in srgb, var(--blood) 60%, transparent);
+  color: var(--blood);
+}
+
+.confirm {
+  margin-top: 0.75rem;
+  padding: 0.7rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--blood) 55%, transparent);
+  background: rgb(60 10 14 / 45%);
+}
+
+.confirm p {
+  margin: 0 0 0.5rem;
+  font-weight: 500;
+}
+
+.blocked,
+.note,
+.error {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+}
+
+.note {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+}
+
+.blocked {
+  color: var(--warn);
+}
+
+.note--risen {
+  color: var(--moss);
+}
+
+.error {
+  margin: 0.5rem 0 0;
+  color: var(--blood);
+}
+
+.links {
+  display: flex;
+  gap: 0.9rem;
+  margin: 0.7rem 0 0;
+  font-size: 0.8rem;
+}
+
+a {
+  color: var(--moss);
+}
+
+.more {
+  margin-top: 0.75rem;
+  width: 100%;
+  padding: 0.45rem;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card {
+    transition: box-shadow 0.3s ease;
+  }
+}

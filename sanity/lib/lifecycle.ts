@@ -1,4 +1,5 @@
-// The rules of a bug's life, used by the Studio's lifecycle actions.
+// The rules of a bug's life, used by the Studio's lifecycle actions and by the Morgue
+// App SDK app (apps/morgue).
 // Dates are "YYYY-MM-DD" strings in UTC, like everywhere else in the app.
 
 /** How long a fix must hold, in days, before its bug can be declared buried. */

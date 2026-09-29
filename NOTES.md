@@ -1345,3 +1345,101 @@ animated, 109 frames), all 6 links return 200, and the embed renders "41 message
 - **Headless Studio capture needs no extra token.** Setting
   `__studio_auth_token_<projectId>` in `localStorage` from the CLI login signs the
   Studio in, which is how the screenshots and the GIF were made on the live Studio.
+
+---
+
+## Phase 10: The Morgue (App SDK) and the leftovers (2026-09-29)
+
+### What I asked for
+
+After publishing, Claude listed what was left for me to do by hand: revoke the DEV API
+key, connect Vercel to GitHub, decide what to do with the `explore/workflows` branch,
+decide on the Morgue App SDK app, and reply to comments. I said: "do it by yourself if
+you need any pass or something I will give you."
+
+Decisions made for me:
+- **`explore/workflows`:** push it, so the Workflows work described in the post can be
+  checked. It stays unmerged.
+- **The Morgue:** build it. The App SDK is one of the two things the challenge names
+  for bonus points, and it lives in its own folder, so nothing that works changes.
+- Vercel and the DEV key need my browser logins, so they're asked for at the end.
+
+### What was built
+
+- Pushed `explore/workflows` to GitHub (2 commits; a scan found no secrets). Vercel wasn't
+  connected to GitHub yet, so the push couldn't deploy it.
+- `apps/morgue/`: the Morgue, a Sanity App SDK app (`@sanity/sdk-react` 3.5.0, `sanity`
+  6.16 as its CLI), scaffolded with `npx sanity@latest init --template app-quickstart`:
+  - `src/Morgue.tsx`: four live columns (Suspected dead, Walking, Waiting, Ready to bury),
+    each a `useDocuments` list with a GROQ filter, plus a buried count
+  - `src/BugCard.tsx`: one `useDocumentProjection` per card, and the three lifecycle
+    buttons through `useApplyDocumentActions` (`editDocument` / `createDocument` on
+    `liveEdit` handles, so they write straight to the published bug)
+  - `src/facts.ts`: one live `useQuery` (raw perspective) for which bugs have Studio
+    drafts or release versions, and which graves have already risen
+  - `run-sanity.mjs`: runs the Sanity CLI from a mirror folder (see below)
+  - `README.md`, `icon.svg`, `sanity.cli.ts` (organization `o0zfmcbiy`, title "Morgue")
+- `sanity/lib/lifecycle.ts`: only its comment changed; the Morgue imports the same
+  `BURIAL_WAIT_DAYS`, `daysUntilBurial`, `zombieName`, `slugify` and `todayUTC`
+- `tsconfig.json`, `eslint.config.mjs`, `.vercelignore`: the site now skips `apps/`
+- `README.md`: the Morgue and the Workflows branch
+- `docs/post/morgue.png`, `docs/post/morgue-live.gif` (1200×750, 12fps, 1.9MB)
+
+**End-to-end test, 18/18 checks passed.** Headless Chrome opened the local Morgue inside
+the real Sanity Dashboard and clicked its buttons on four temporary test bugs (one with a
+Studio draft):
+- the right bugs in the right columns;
+- "Can bury in 4 days" disabled for a fix 3 days old;
+- the draft warning, with every button disabled;
+- Mark fix merged moved a card to Waiting live, writing the published bug with today's
+  UTC date and no draft;
+- Declare buried took a card off the board, and the buried count went from 16 to 17;
+- Cancel in the confirm created nothing;
+- "Let it rise" created exactly one published zombie with the right name, slug, count,
+  language and cause, which appeared in Walking live;
+- the grave then couldn't rise twice.
+
+Everything was deleted afterwards: 18 bugs, 0 drafts, 0 test documents.
+
+### What went wrong and how we fixed it
+
+- **`sanity build` in `apps/morgue` built the site's Studio instead,** into a new `dist/`
+  and `.sanity/` at the repo root (both deleted; nothing tracked was touched). The CLI's
+  `findProjectRootSync` looks for `sanity.config.(ts|js)` in the current folder and every
+  parent *before* it looks for `sanity.cli.(ts|js)`, and it has no option to override
+  that. So an app inside a repo with a Studio config at the root always resolves to that
+  Studio, and `sanity deploy` would deploy the Studio. Fix: `run-sanity.mjs`, used by
+  `npm run dev|build|deploy`, symlinks the app into a folder under the system temp
+  folder and runs the CLI there. The build then says "Building Sanity application".
+- **The dev server answered 403:** "The request id "…/.sanity/runtime/index.html" is
+  outside of Vite serving allow list." Setting `server.fs.allow` (so Vite can serve the
+  shared `sanity/lib/lifecycle.ts`) replaces Vite's defaults. Fix: allow the mirror
+  folder (both its `/var` and `/private/var` spellings) as well as the repo root.
+- **The Dashboard showed an empty frame in headless Chrome.** Chrome asks before a public
+  site may frame `localhost` (local network access), and headless Chrome can't answer.
+  For the local test only, it ran with
+  `--disable-features=LocalNetworkAccessChecks,…`. Signing in needed no password: the
+  CLI login token as a `sanitySession` cookie on `api.sanity.io` signed the Dashboard in.
+- **The site's lint ran out of memory** ("JavaScript heap out of memory") because it
+  tried to lint the stray root `dist/` from the first build. Fixed by deleting it.
+- **The app's lint flagged `process` and `URL` in `run-sanity.mjs`,** because the
+  Studio lint config assumes browser code. Fix: Node globals for that one file.
+- **A GROQ trap in the "Waiting" filter:** `!(fixMergedAt <= $cutoff)` drops bugs that
+  have no fix date, because a comparison with null is null and `!null` is still null.
+  It's written as `!defined(fixMergedAt) || fixMergedAt > $cutoff`.
+
+### Sanity notes for the write-up
+
+- **An App SDK app is a React app that runs in the Dashboard.** `<SanityApp>` gets the
+  signed-in user's token from the Dashboard, so there's no login code and no token in
+  the app. Every hook is live: a change from the Studio, the site's scripts or another
+  Morgue tab moves the cards without a refresh.
+- **The App SDK's building blocks map onto the Studio's:** `useDocuments` gives
+  handles, `useDocumentProjection` gives fields, and `useApplyDocumentActions` with
+  `editDocument` / `createDocument` does what the document actions do with `useClient`.
+  A `liveEdit: true` handle writes to the published document with no draft step, which
+  matches how the Studio's lifecycle actions work.
+- **One rulebook, two interfaces.** The Studio's actions and the Morgue import the same
+  `sanity/lib/lifecycle.ts`, so "a fix must hold 7 days" can't drift between them.
+- **App SDK apps and a root-level Studio config don't mix** without a workaround (see
+  above), which matters for any Next.js project with an embedded Studio.

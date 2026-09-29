@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The Morgue App SDK app has its own package and lint config.
+    "apps/**",
   ]),
 ]);
 

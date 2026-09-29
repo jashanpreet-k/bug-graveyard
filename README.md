@@ -34,6 +34,9 @@ Live: **https://bug-graveyard.vercel.app** · Built with Next.js + Sanity for th
   and a signed Sanity webhook refreshes the cache when nobody has the site open.
 - **Share images.** Every grave gets its own Open Graph image with its tombstone, made
   with `next/og`.
+- **The Morgue, an App SDK app.** A live board in the Sanity Dashboard of every bug that
+  isn't resting yet (suspected dead, walking, waiting, ready to bury), with the same
+  lifecycle actions on each card. See [`apps/morgue`](apps/morgue).
 
 ![The Studio: the graveyard sidebar, a list of bugs, and the live Tombstone view of a zombie](docs/studio.jpg)
 
@@ -72,6 +75,12 @@ follows.
   **Vercel**
 - **Sanity:** Studio v5 embedded at `/studio`, `next-sanity` 13, GROQ, the Live Content
   API, TypeGen (typed queries), and a signed webhook to `/api/revalidate`
+- **The Morgue:** the Sanity App SDK (`@sanity/sdk-react` 3), in its own package in
+  `apps/morgue`
+
+A Sanity Workflows experiment (the lifecycle as a workflow definition, with engine tests)
+is on the [`explore/workflows`](https://github.com/jashanpreet-k/bug-graveyard/tree/explore/workflows)
+branch. It isn't merged, because the Workflows Studio plugin needs Studio 6.
 
 ## Running it locally
 

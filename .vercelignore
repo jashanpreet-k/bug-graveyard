@@ -3,3 +3,5 @@
 .env*
 .next
 node_modules
+# The Morgue runs in the Sanity Dashboard, not on Vercel
+apps

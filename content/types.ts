@@ -29,11 +29,12 @@ export type GraveEntry = {
   bornAt?: string
   /** When its fix merged, as "YYYY-MM-DD". */
   fixMergedAt?: string
-  /** When it was declared buried, as "YYYY-MM-DD". */
+  /** When it was declared buried, as "YYYY-MM-DD": at least 7 days after fixMergedAt. */
   buriedAt?: string
   /**
    * For a regression: the `key` of the entry this bug is a zombie of. That entry
-   * must be fix-merged or buried, and each grave can only rise once.
+   * must be fix-merged or buried, each grave can only rise once, and the zombie's
+   * bornAt can't be before that entry's fixMergedAt.
    */
   risesFrom?: string
 }

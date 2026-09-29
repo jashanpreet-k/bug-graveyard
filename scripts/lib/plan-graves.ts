@@ -1,6 +1,7 @@
 // Turns content/graves.ts into Sanity documents, and explains anything wrong with
 // it. Pure: it reads no data and writes nothing, so it's easy to test.
 import type {GraveEntry} from '../../content/types'
+import {BURIAL_WAIT_DAYS, daysBetween} from '../../sanity/lib/lifecycle'
 import {BUG_STATUSES} from '../../sanity/lib/statuses'
 import {EPITAPH_MAX_LENGTH} from '../../sanity/schemaTypes/bug'
 
@@ -67,6 +68,13 @@ export function planGraves(entries: GraveEntry[], lookups: Lookups) {
     for (let i = 1; i < inOrder.length; i++) {
       if (entry[inOrder[i]]! < entry[inOrder[i - 1]]!) problem(`${inOrder[i]} is before ${inOrder[i - 1]}`)
     }
+    // The same rule as the Studio's "Declare buried" action.
+    if (isDate(entry.fixMergedAt) && isDate(entry.buriedAt)) {
+      const held = daysBetween(entry.fixMergedAt!, entry.buriedAt!)
+      if (held >= 0 && held < BURIAL_WAIT_DAYS) {
+        problem(`buriedAt is ${held} days after fixMergedAt; a fix must hold ${BURIAL_WAIT_DAYS} days before burial`)
+      }
+    }
 
     const clash = lookups.slugs.find((s) => s.slug === entry.key && s._id !== graveId(entry.key))
     if (clash) problem(`another bug (${clash._id}) already lives at /grave/${entry.key}; pick a different key`)
@@ -90,6 +98,10 @@ export function planGraves(entries: GraveEntry[], lookups: Lookups) {
       problem(`"${grave.key}" already rose as "${risenFrom.get(grave.key)}"; a grave rises only once, so chain from that zombie instead`)
     } else {
       risenFrom.set(grave.key, entry.key)
+      // A regression can't come back before the fix it regressed.
+      if (isDate(entry.bornAt) && isDate(grave.fixMergedAt) && entry.bornAt! < grave.fixMergedAt!) {
+        problem(`bornAt ${entry.bornAt} is before "${grave.key}" had its fix merged (${grave.fixMergedAt})`)
+      }
     }
   })
 

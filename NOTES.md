@@ -879,3 +879,94 @@ language.
 - **Perspectives matter in scripts.** With this API version, the default is
   `published`. Anything that needs drafts must ask for `raw` (or `drafts`), or it
   silently misses them.
+
+---
+
+## Phase 8: Real content (2026-09-29)
+
+### What I asked for
+
+- Seed six more causes of death (CSS, Cache, Dependency hell, Floating point,
+  Encoding, Merge conflict) and a CSS language (#663399), and run the seed.
+- Replace the two examples in `content/graves.ts` with my real graves: 14 bugs, a
+  three-life timezone zombie chain, and a stale-cache zombie. My epitaphs word for
+  word; realistic dates across 2024–2026 (born < fixed < buried, burial at least 7
+  days after the fix); 1–40 hours to kill; sensible severities; killed by
+  "Jashanpreet".
+- Dry run, import, then `--delete-test` to remove the test bugs.
+- Check the live site: the looks on the homepage, the chain's past lives, and that the
+  leaderboard makes sense. Then this entry, commit and push.
+
+### What was built
+
+- `scripts/seed.ts`: 6 new causes of death, each with a one-line description like the
+  others, plus the CSS language. The run created exactly those 7 and skipped the 11
+  that already existed.
+- `content/graves.ts`: 18 graves. The 14 bugs are all buried, with dates spread from
+  February 2024 to April 2026.
+  - **The timezone chain starts on real daylight-saving switches:** the original on
+    30 March 2025, Zombie #1 on 26 October 2025 ("Came back after daylight saving"),
+    and Zombie #2 on 29 March 2026, still walking.
+  - **"Cron job that ran twice at DST" was born on 27 October 2024,** the night
+    European clocks fell back an hour.
+  - **Zombie names follow the Studio's pattern,** "<name> (Zombie #n)", with the same
+    language and cause as the grave they rose from.
+  - **Walking zombies have only a birth date.** No fix or burial date, killer or hours,
+    since they aren't dead yet.
+- `scripts/lib/plan-graves.ts` and `content/types.ts`: two new importer checks, so the
+  importer follows the same rules as the Studio:
+  - burial must come at least `BURIAL_WAIT_DAYS` (7) after the fix;
+  - a zombie can't be born before the fix it regressed.
+
+**Result in Sanity:** 18 published graves (`grave-<key>`), 0 other bugs, 0 drafts.
+`--delete-test` removed the 3 test bugs.
+
+### Checks
+
+- An independent script checked the brief directly: all 18 epitaphs are word for word
+  (including ₹0.30000000000000004 and "Ã©"), and every date, hour count and killedBy
+  follows the rules.
+- The two new importer rules each passed a failing case and a passing case, including
+  a burial exactly 7 days after the fix being allowed.
+- The dry run listed 18 "create" lines, with the chain counted as 1× and 2× and the
+  stale-cache zombie as 1×.
+- **On the live site (after the webhook, within about a second):**
+  - The homepage says "18 graves · 2 zombies walking".
+  - **Disturbed:** the original timezone bug, timezone Zombie #1 and the stale cache.
+  - **Zombies:** timezone Zombie #2 and stale-cache Zombie #1. The other 13 rest.
+  - `<<<<<<< HEAD in production` and "Jashan's" render correctly, and CSS appears as a
+    language filter.
+  - All 18 grave pages load, and the old test-bug pages now return 404.
+  - Zombie #2's page shows its past lives in order (the original, then Zombie #1),
+    with no "…and older lives", "Times resurrected: 2", and the title "RIP Timezone
+    bug in scheduler (Zombie #2)".
+  - **Leaderboard:**
+    - **Deadliest:** Two threads, one counter (38h), Array index −1 (22h), Zombie #1
+      (20h), the original timezone bug (16h), and the laptop bug (14h).
+    - **Haunted languages:** Python 2, TypeScript 1.
+    - **Causes:** Timezone 4, then Cache, Null reference and Off-by-one with 2 each,
+      in alphabetical order, then the rest.
+    - **Most resurrected:** Zombie #2, "has risen 2 times", with the three-life chain.
+
+### What went wrong
+
+- **Two of my own checks had wrong expectations; the site was right both times.** The
+  content uses 12 distinct causes of death, not the 14 I expected. And on a grave page
+  the big stone's name is the page's `<h1>`, not an `<h2>`, so my helper missed it.
+  Both were confirmed against the live page directly.
+- **A layout nit, not fixed yet:** on desktop, the three-stone chain in "Most
+  resurrected" wraps onto a second line in its half-width card, and the long causes
+  list leaves that card with empty space beside it.
+
+### Sanity notes for the write-up
+
+- **Going from test data to real content was three commands and no code:** seed the
+  new reference data, import the file, delete the test bugs. The live site, the
+  leaderboard and the Studio's filtered lists all updated through the webhook within
+  about a second.
+- **The rules live in one place each.** The 7-day burial wait is the same constant in
+  the Studio action and the importer, so bulk-imported history can't break a rule the
+  Studio enforces.
+- **References made the clean-up safe.** `--delete-test` checks with
+  `references($ids)` before deleting, and the imported graves never pointed at test
+  bugs, so it could remove them in one transaction.

@@ -20,6 +20,7 @@ const languages = [
   {key: 'typescript', name: 'TypeScript', color: '#3178C6'},
   {key: 'java', name: 'Java', color: '#ED8B00'},
   {key: 'cpp', name: 'C++', color: '#00599C'},
+  {key: 'css', name: 'CSS', color: '#663399'},
 ]
 
 const causesOfDeath = [
@@ -52,6 +53,36 @@ const causesOfDeath = [
     key: 'works-on-my-machine',
     title: 'Works on my machine',
     description: 'Passed every test locally, then met production and an environment it had never seen.',
+  },
+  {
+    key: 'css',
+    title: 'CSS',
+    description: 'Looked perfect in one browser, then met the others. `!important` was not enough.',
+  },
+  {
+    key: 'cache',
+    title: 'Cache',
+    description: 'Served yesterday’s answer to today’s question, very quickly.',
+  },
+  {
+    key: 'dependency-hell',
+    title: 'Dependency hell',
+    description: 'Broken by a package that a package it used depended on.',
+  },
+  {
+    key: 'floating-point',
+    title: 'Floating point',
+    description: '0.1 plus 0.2 was never going to be 0.3.',
+  },
+  {
+    key: 'encoding',
+    title: 'Encoding',
+    description: 'Spoke UTF-8 to something that only understood Latin-1.',
+  },
+  {
+    key: 'merge-conflict',
+    title: 'Merge conflict',
+    description: 'Two changes met on the same line, and neither backed down.',
   },
 ]
 

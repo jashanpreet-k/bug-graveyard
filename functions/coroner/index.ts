@@ -168,7 +168,7 @@ export const handler = documentEventHandler<NewBug>(async ({context, event}) => 
   }
   const {best, passes} = findResurrection(newBug, graves)
   const signals = (best?.signals ?? []).map((signal) =>
-    signal.signal === 'cause' && suggestedCause ? {...signal, detail: `${signal.detail} (the coroner's suggestion)`} : signal,
+    signal.signal === 'cause' && suggestedCause ? {...signal, detail: `${signal.detail}, as the coroner suggested`} : signal,
   )
 
   let reason: string | null = null

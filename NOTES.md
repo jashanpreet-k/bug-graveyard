@@ -1921,7 +1921,7 @@ match score = 25 × [same cause of death]
   words, with plural and -ed/-ing endings trimmed, and with two aliases (DST →
   daylight, TZ → timezone). The page shows the shared words, not their trimmed forms.
 - **The cause signal** uses the new bug's own cause of death, or else the cause the
-  coroner suggested, and it says so ("Timezone (the coroner's suggestion)").
+  coroner suggested, and it says so ("Timezone, as the coroner suggested").
 - **Ties** go to the grave name that sorts first.
 - **It's labelled "match score from 4 signals",** never a similarity percentage.
 

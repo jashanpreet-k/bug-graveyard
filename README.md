@@ -1,36 +1,140 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bug Graveyard 🪦
 
-## Getting Started
+**A graveyard for the bugs you've fixed, where regressions climb out of their graves as zombies.**
 
-First, run the development server:
+Live: **https://bug-graveyard.vercel.app** · Built with Next.js + Sanity for the DEV Sanity Challenge.
+
+![The Bug Graveyard homepage: tombstones under a full moon, two of them glowing green zombies](docs/graveyard.jpg)
+
+## Features
+
+- **A tombstone for every fixed bug.** Each stone shows the bug's name, birth and death
+  dates, epitaph, language and cause of death. Stones come in three looks: *resting*,
+  *disturbed* (the grave is empty because the bug came back) and *zombie* (cracked and
+  glowing). You can filter by language or cause of death.
+- **Zombie chains.** A regression is a new bug whose `previousLife` points at the grave
+  it rose from. Every grave page shows its past lives, oldest first, and any zombies
+  that rose from it. Zombies can die and rise again.
+- **Lifecycle actions in the Studio.** Three custom document actions: 🩹 **Mark fix
+  merged**, 🪦 **Declare buried** (only after the fix has held for 7 days; until then
+  it reads "Can bury in N days"), and 🧟 **Report resurrection**, which asks you to
+  confirm, creates the zombie and opens it. They fill in the read-only dates and the
+  resurrection count, so those fields record what actually happened.
+- **A live Tombstone view in the Studio.** Bug documents have an "Editor" tab and a
+  "🪦 Tombstone" tab. The Tombstone tab renders the site's own `Tombstone` component
+  and updates as you type, with a counter for the 140-character epitaph limit.
+- **The "Most Haunted" leaderboard,** built from GROQ aggregations: the deadliest bugs,
+  the most haunted languages, the most common causes of death, and the most resurrected
+  chain.
+- **A content importer.** Write bugs, with their real dates, in
+  [`content/graves.ts`](content/graves.ts), then import them. The importer checks every
+  entry (known names, real dates, the burial rule, valid zombie chains) and writes
+  nothing if anything is wrong.
+- **Always up to date.** `<SanityLive />` updates open tabs within seconds of a publish,
+  and a signed Sanity webhook refreshes the cache when nobody has the site open.
+- **Share images.** Every grave gets its own Open Graph image with its tombstone, made
+  with `next/og`.
+
+![The Studio: the graveyard sidebar, a list of bugs, and the live Tombstone view of a zombie](docs/studio.jpg)
+
+![The Most Haunted leaderboard](docs/leaderboard.jpg)
+
+## Schema design
+
+There are three document types, in [`sanity/schemaTypes`](sanity/schemaTypes).
+
+**`bug`** is the one that matters:
+
+| Field | Why it's there |
+|---|---|
+| `name`, `slug`, `epitaph` | What's carved on the stone; the epitaph is limited to 140 characters |
+| `language` → `language`, `causeOfDeath` → `causeOfDeath` | References, so they can be renamed and recoloured in one place, filtered and counted |
+| `severity`, `killedBy`, `hoursToKill` | The details on the death certificate |
+| `status` | `suspected-dead` → `fix-merged` → `buried`, or `zombie` |
+| `bornAt`, `fixMergedAt`, `buriedAt` | Dates in UTC. The last two are read-only and set by the lifecycle actions |
+| `previousLife` → `bug` | **A reference back to `bug` itself.** A zombie is just a bug with a previous life |
+| `timesResurrected` | How far down its chain the bug is; read-only |
+
+**Why a zombie is a `bug` and not its own type:**
+- A zombie gets fixed and buried like any other bug, so it needs every field a bug has.
+- One type pointing at itself gives chains of any length, one query and one component.
+- Whether a grave is *disturbed* isn't stored. GROQ works it out when asked:
+  `count(*[_type == "bug" && previousLife._ref == ^._id]) > 0`.
+
+**`language`** (a name and a brand colour) and **`causeOfDeath`** (a title and a
+description) are small documents that bugs reference. That keeps the filters, badges
+and leaderboard counts consistent. Recolour a language once and every tombstone
+follows.
+
+## Stack
+
+- **Next.js 16** (App Router, TypeScript, Tailwind CSS v4, `next/og`), deployed on
+  **Vercel**
+- **Sanity:** Studio v5 embedded at `/studio`, `next-sanity` 13, GROQ, the Live Content
+  API, TypeGen (typed queries), and a signed webhook to `/api/revalidate`
+
+## Running it locally
+
+You'll need Node 20 or later, and your own Sanity project (free).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/jashanpreet-k/bug-graveyard.git
+cd bug-graveyard
+npm install
+npx sanity@latest login
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Create a Sanity project, either at [sanity.io/manage](https://www.sanity.io/manage)
+   or with `npx sanity@latest init --bare`. Add `http://localhost:3000` as a CORS origin
+   **with credentials allowed**, which the Studio needs.
+2. Create `.env.local` (git ignores it):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   ```bash
+   NEXT_PUBLIC_SANITY_PROJECT_ID="your-project-id"
+   NEXT_PUBLIC_SANITY_DATASET="production"
+   # Only needed for the webhook route; make one with: openssl rand -hex 32
+   SANITY_REVALIDATE_SECRET="a-long-random-string"
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Add the languages and causes of death, then import the graves:
 
-## Learn More
+   ```bash
+   npx sanity exec scripts/seed.ts --with-user-token
+   npx sanity exec scripts/import-graves.ts --with-user-token -- --dry-run   # check first
+   npx sanity exec scripts/import-graves.ts --with-user-token
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+4. Run `npm run dev` and open http://localhost:3000 for the site, or
+   http://localhost:3000/studio for the Studio.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Command | What it does |
+|---|---|
+| `npm run dev` / `npm run build` / `npm run lint` | The usual |
+| `npm run typegen` | Regenerates `sanity/types.ts` from the schema and every `defineQuery` |
+| `scripts/seed.ts` | Adds the languages and causes of death (skips any that already exist) |
+| `scripts/import-graves.ts` | Imports `content/graves.ts`. Add `-- --dry-run` to check only, or `-- --delete-test` to remove test bugs |
+| `scripts/seed-test-bugs.ts` | Three throwaway test bugs; add `-- --delete` to remove them |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deploying
 
-## Deploy on Vercel
+Deploy to Vercel with the same three environment variables, keeping
+`SANITY_REVALIDATE_SECRET` in production only and marked sensitive. Then, in Sanity:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Add the production URL as a CORS origin, with credentials allowed.**
+- **Create a webhook:**
+  - URL: `POST https://<your-site>/api/revalidate`
+  - Dataset: `production`
+  - Triggers: create, update and delete
+  - Filter: `_type in ["bug", "language", "causeOfDeath"]`
+  - Projection: `{_id, _type}`
+  - Secret: the same `SANITY_REVALIDATE_SECRET`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## About the graves
+
+The bugs in `content/graves.ts` are classic, well-known developer bugs (off-by-one
+errors, `0.1 + 0.2`, the div that won't centre), written in the voice of this
+graveyard. They aren't a record of any one person's history.
+
+The build log behind this project, phase by phase, is in [NOTES.md](NOTES.md). The
+fonts in `assets/fonts` (Grenze Gotisch, and a small Noto Sans subset) are used under
+the SIL Open Font License; the licences are next to them.

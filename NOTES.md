@@ -9,6 +9,12 @@ embedded at `/studio`. Deploying on Vercel.
 
 A new entry is added at the end of every phase.
 
+**About the graves:** the 18 bugs in `content/graves.ts` are classic, well-known
+developer bugs (off-by-one, `0.1 + 0.2`, the div that won't centre, a cron job at a
+daylight-saving switch…), written in the graveyard's voice with made-up but realistic
+dates. They are not claimed as my personal history. A search of my other repos on this
+Mac found no bug-fix commits to use instead (see Phase 9).
+
 ---
 
 ## Phase 1: Next.js + Sanity setup (2026-09-29)
@@ -970,3 +976,136 @@ language.
 - **References made the clean-up safe.** `--delete-test` checks with
   `references($ids)` before deleting, and the imported graves never pointed at test
   bugs, so it could remove them in one transaction.
+
+---
+
+## Phase 9: Polish before submission (2026-09-29)
+
+### What I asked for
+
+- Skip the real-bug interview and keep `content/graves.ts` as it is, with a note that
+  the graves are classic developer bugs, not my history. (Before this, a search of
+  `~/Desktop` and `~/Documents` found three repos and 10 commits, none of them bug
+  fixes: `BTP_BEST` has only setup commits, `ml_challnege` has none, and
+  `color-norm-btp` is a teammate's work.)
+- The polish pass:
+  - fix the leaderboard layout;
+  - vary the tombstones naturally but deterministically;
+  - a favicon, a site-wide share image and per-grave share images;
+  - check every page at 375px and 1440px;
+  - accessibility (labels, contrast, focus, reduced motion);
+  - titles and descriptions everywhere;
+  - a footer with the repo link;
+  - a proper README;
+  - a check of the repo and history for secrets;
+  - then build, deploy with every grave prerendered, verify, note and commit.
+
+### What was built
+
+- **Leaderboard:** "Most resurrected" spans the full width, so the three-stone chain
+  stays on one line. Below it are two columns (Deadliest and Haunted languages on the
+  left, Causes of death on the right) that end level; the last card stretches.
+  `RankedBars` gained a `compact` mode (label and bar on one line) for short labels.
+- **Natural stones:** `stoneStyleFor(id)` in `lib/graves.ts` hashes the bug's ID (with
+  FNV-1a, a simple hash) into one of four shapes (dome, tall, flat, low), a height
+  within ±1.5rem, a width from 17 to 18.5rem, and a tilt within ±1.2°. Only resting
+  stones tilt. The same ID always gives the same stone, so nothing moves between the
+  server and the browser. The homepage grid lines the stones up by their bottoms, like
+  a ground line.
+- **Icons and share images:**
+  - `app/icon.svg` is a tombstone favicon, replacing the default `favicon.ico`, and
+    `app/apple-icon.tsx` is the home-screen icon.
+  - `app/(site)/opengraph-image.tsx` is the site-wide card: the title and three stones
+    (resting, disturbed, zombie).
+  - `grave/[slug]/opengraph-image.tsx` gives each grave its own stone with name, dates,
+    epitaph, language and cause, and "Rose from …".
+  - All of them are drawn in `lib/og.tsx`, using fonts in `assets/fonts` with their
+    OFL licences.
+- **Metadata:** `lib/metadata.ts` provides the site name and description, `metadataBase`
+  and an `openGraph()` helper. Titles use the template "%s · Bug Graveyard", grave
+  pages keep "RIP <name>", and every page has Open Graph data and a
+  `summary_large_image` Twitter card.
+- **Footer:** "Built with Next.js + Sanity for the DEV Sanity Challenge · Source on
+  GitHub".
+- **Accessibility:**
+  - a "Skip to content" link;
+  - a global focus ring for links and buttons;
+  - mini-stone captions kept for screen readers instead of `display: none`;
+  - muted text lifted above 4.5:1 (rank numbers, chip counts, and the kicker and dates
+    on a stone);
+  - reduced motion was already respected, and is now tested.
+- **`app/not-found.tsx`:** a styled 404 for any unknown URL.
+- **`README.md`:** the pitch, three screenshots (`docs/`), the live link, the features,
+  the schema design and why, the stack, local setup, deployment, and a note about the
+  content.
+
+### Checks
+
+- **Every page at 375px (phone emulation) and 1440px:** no horizontal overflow on the
+  homepage, a filtered view, the leaderboard, two grave pages, both 404s and the
+  Studio. Each page has exactly one `<h1>`, and no link lacks an accessible name.
+- **Keyboard:** tabbing through the homepage (70 stops), the leaderboard (56) and a
+  grave page (16) showed a visible focus ring at every stop. The first Tab reveals
+  "Skip to content".
+- **Reduced motion:** the fog, the zombie glow and the hover lift all stop.
+- **Contrast** was measured on the darkest, lightest and foggiest backgrounds; three
+  cases below 4.5:1 were fixed.
+- **Share images:** the ₹ in "Owed ₹0.30000000000000004" renders thanks to the symbol
+  fallback font, and zombies glow.
+- **Secrets:** none of the real webhook secret, Vercel OIDC token or Sanity CLI token
+  appears in any file or in any of the 13 commits. There are 0 hits for token and
+  private-key patterns, and no `.env` file was ever committed. `.env.local`, `.vercel/`,
+  `.next/` and `node_modules/` are all ignored.
+- **Live, after deploying:**
+  - all 18 grave pages are served as `PRERENDER`;
+  - the share tags point at absolute production URLs;
+  - the share images and icons load;
+  - the footer is there;
+  - `/studio` loads no global site CSS;
+  - both 404s work.
+
+### What went wrong and how we fixed it
+
+- **Satori rejected `transform: 'none'`.** The build failed with `Unexpected token type:
+  word`, because the share-image renderer's transform parser only accepts functions like
+  `rotate()`. Fix: leave the property out for stones that aren't disturbed.
+- **The build prerendered deleted bugs.** `generateStaticParams` read the slug list
+  from Next's local fetch cache in `.next/cache`, which still held the test bugs,
+  because content changes never reach a local cache. Fix: `allGraveSlugs()` fetches
+  the list with `cache: 'no-store'`. The stale local cache was cleared too.
+- **The site CSS leaked into the Studio.** The root 404 page first imported the site's
+  global CSS, and a root not-found's styles load on **every** route, which pulled
+  Tailwind into `/studio` (3 stylesheets). Fix: a scoped CSS module. `/studio` now loads
+  only scoped modules and the font faces.
+- **The leaderboard lost its share image.** A page that sets `openGraph` replaces the
+  inherited file-based image, so `leaderboard/opengraph-image.tsx` re-exports the
+  site-wide one.
+- **"Works on my machine" was cut off** in the compact label column. The column was
+  widened from 10rem to 12rem.
+- **Test script mistakes, not app bugs:** the shell's `grep` is ugrep, which choked on
+  one long pattern, so the system grep was used. And a `[class*="stone"]` selector also
+  matched every `Tombstone-module` class.
+
+### Not fixed (known limits)
+
+- **Pushing to GitHub still doesn't deploy.** Vercel needs a GitHub login connection
+  added in the browser first, so deploys are done with `vercel deploy --prod`.
+- **The share-image fallback only covers a few symbols:** ₹ € £ ¥, curly quotes and
+  dashes. Emoji or non-Latin text in a name or epitaph would show as empty boxes in
+  that grave's share image (the site itself is fine).
+- **An unknown grave's 404 has the site title in its `<head>`.** The "This grave is
+  empty" title arrives later in the page load, so browsers show it but plain HTML
+  readers don't. It's a 404 and isn't indexed.
+- **The leaderboard columns only end level through stretching.** With very different
+  content the stretched card could hold some empty space.
+- **Tested with automated checks and emulation only:** no real screen reader, and no
+  real phones.
+
+### Sanity notes for the write-up
+
+- **The same Tombstone runs in three places:** the site, the Studio preview, and (in
+  redrawn form) the share images, all from the same content.
+- **Build-time data and live data are different problems.** Live updates and the
+  webhook keep the running site fresh, but `generateStaticParams` at build time needs
+  its own fresh read (`cache: 'no-store'`), or a build can prerender content that no
+  longer exists.

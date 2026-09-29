@@ -30,6 +30,8 @@ export default defineBlueprint({
     // coroner's report for a person to accept. Drafts don't trigger it.
     defineDocumentFunction({
       name: 'coroner',
+      // Required in an organization-scoped stack (which scheduled functions need)
+      project: PROJECT_ID,
       event: {
         on: ['create'],
         filter:

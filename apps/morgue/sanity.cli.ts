@@ -18,6 +18,8 @@ export default defineCliConfig({
     title: 'Morgue',
     icon: './icon.svg',
   },
+  // Set by the first deploy, so later deploys update the same app
+  deployment: {appId: 'q5vfdrceno9068twj9vsvcmn'},
   vite: (config) =>
     repoRoot
       ? {...config, server: {...config.server, fs: {...config.server?.fs, allow: [...(config.server?.fs?.allow ?? []), ...here, repoRoot]}}}

@@ -1390,6 +1390,14 @@ Decisions made for me:
   `bug-graveyard` repo only. The project is now linked to `jashanpreet-k/bug-graveyard`
   with `main` as the production branch, so pushes to `main` deploy the site (no more
   `vercel deploy --prod`), and pushes to other branches get preview deploys.
+  The first push after connecting built and went live in about 40 seconds.
+- **The published post got a new section,** "Reaching past the Studio: the App SDK",
+  with the Morgue GIF and the `apps/morgue` link. It also links the `explore/workflows`
+  branch instead of calling it local, lists `apps/morgue/` under "Where to look", and has
+  one new "What I learned" bullet. The update went through the DEV API, and only after
+  checking that the live post still matched the published version. It used a new DEV
+  key, which I pasted into the chat by mistake (so it's in the session log) and revoke
+  right after.
 
 **End-to-end test, 18/18 checks passed.** Headless Chrome opened the local Morgue inside
 the real Sanity Dashboard and clicked its buttons on four temporary test bugs (one with a

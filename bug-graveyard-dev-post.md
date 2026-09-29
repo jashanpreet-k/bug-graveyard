@@ -77,6 +77,7 @@ Where to look:
 - `sanity/schemaTypes/bug.ts`: the bug schema
 - `sanity/lib/queries.ts`: every GROQ query, typed with Sanity TypeGen
 - `sanity/components/TombstoneView.tsx` and `components/Tombstone.tsx`: the Studio view and the stone it shares with the site
+- `apps/morgue/`: the Morgue, an App SDK app (see below)
 - `NOTES.md`: the phase-by-phase build log this post is based on
 
 ## My Build Process
@@ -122,7 +123,7 @@ Two traps we avoided on purpose:
 
 ### Reaching past the Studio: Workflows
 
-I also asked Claude Code to find out, in a 3-hour time box, whether Sanity Workflows could run this lifecycle. It can model it. On a separate local branch, the lifecycle is two workflow definitions (one for a bug and one for a zombie), and "Declare buried" is gated by a GROQ requirement instead of a timer:
+I also asked Claude Code to find out, in a 3-hour time box, whether Sanity Workflows could run this lifecycle. It can model it. On a separate branch ([`explore/workflows`](https://github.com/jashanpreet-k/bug-graveyard/tree/explore/workflows)), the lifecycle is two workflow definitions (one for a bug and one for a zombie), and "Declare buried" is gated by a GROQ requirement instead of a timer:
 
 ```groq
 dateTime($now) >= dateTime($fields.fixMergedAt) + 604800 // 7 days, in seconds
@@ -131,6 +132,21 @@ dateTime($now) >= dateTime($fields.fixMergedAt) + 604800 // 7 days, in seconds
 `npx sanity-workflows deploy --check` passes for both definitions, and 4 tests pass against the real engine running in memory with a controlled clock. Burial is refused until exactly 7 days have passed.
 
 I didn't merge it. Workflows is in early access (0.35), its Studio plugin needs Studio 6 while this project runs Studio 5, and effects need a runtime I'd have to run myself. A proper integration also means deciding whether the workflow or the bug's own `status` field is the source of truth, which Claude Code estimated at 1.5 to 2 days. The live site still runs on the document actions.
+
+### Reaching past the Studio: the App SDK
+
+After publishing this post, I had Claude Code build **the Morgue**: a small App SDK app that runs in the Sanity Dashboard. It shows every bug that isn't resting yet in four live columns: suspected dead, walking, waiting and ready to bury. Each card has the same three lifecycle actions as the Studio, with the same rules, because both import the same `sanity/lib/lifecycle.ts`.
+
+![The Morgue in the Sanity Dashboard: clicking "Mark fix merged" moves a card from Suspected dead to Waiting, then "Report resurrection" raises a zombie that appears in the Walking column](https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/docs/post/morgue-live.gif)
+
+*The Morgue running locally in the Sanity Dashboard, with temporary test bugs that were deleted afterwards. No refresh anywhere: the cards move as the documents change.*
+
+- **Everything is live.** Each column is a `useDocuments` list with a GROQ filter, and each card reads its fields with `useDocumentProjection`.
+- **The buttons are the Studio's actions, rebuilt with the App SDK.** They use `useApplyDocumentActions` with `editDocument` and `createDocument` on `liveEdit` handles, which write straight to the published bug like the Studio's actions do. They also wait while a bug has unpublished Studio changes.
+- **Tested in the real Dashboard:** 18 checks on temporary test bugs, all deleted afterwards.
+- **One surprise:** the Sanity CLI looks for a Studio config in every parent folder before it looks for an app config. Inside this repo, whose root holds the embedded Studio's config, `sanity build` built the site's Studio instead. The app's npm scripts now run the CLI from a mirror folder outside the repo.
+
+The code is in [`apps/morgue`](https://github.com/jashanpreet-k/bug-graveyard/tree/main/apps/morgue). I haven't deployed it: an App SDK app only opens for members of the project's organization, so for judges the GIF and the code are what's visible.
 
 ## Sanity Project Details
 
@@ -193,6 +209,7 @@ This is the Claude Code session behind this build, with secrets redacted. The em
 
 - **Document actions go a long way.** They're just React components that re-render with the document, so a live countdown like "Can bury in 4 days" needs no refresh logic. And they run as the signed-in editor, so there's no token in the code.
 - **Test against a production build from day one.** `npm run dev` hid both live-update bugs. I'd also connect Vercel to GitHub at the start: I never added the login connection, so every deploy was a manual `vercel deploy --prod`.
+- **The App SDK reuses the Studio's ideas outside the Studio.** Handles, projections and document actions, all live, in a plain React app. Sharing one rules file kept the Studio and the Morgue from drifting apart.
 - **Workflows can model this lifecycle,** and the in-memory test engine makes a rule like "7 days" easy to test by moving the clock. But a real integration needs Studio 6 and a runtime, so for now it stays an experiment.
 - **Directing an agent works best in small phases,** each with a clear brief, a test and a build-log entry. That log is also what this post was fact-checked against.
 

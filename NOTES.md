@@ -2074,3 +2074,92 @@ bug.
 - **AI where it helps, rules where it matters:** the match is arithmetic anyone can
   check. The Agent Action only explains a match that has already passed, and a person
   confirms it with a document action.
+
+### Deployed after I approved (2026-09-30 to 2026-10-01)
+
+1. **The site:** `zombie-detector` fast-forwarded into `main` (`a4762db`) and pushed.
+   Vercel deployed it, and the live pages return 200 with the "How to test in 60 seconds"
+   box, grave timelines and "Try an example".
+2. **The coroner:** I deployed it before pushing the site, since the old site ignores the
+   new fields. `npx sanity blueprints deploy` stopped with:
+
+   ```
+   Error: Stack deployment was accepted but completion could not be confirmed (fetch failed)
+   Code: OPERATION_UNCONFIRMED
+   ```
+
+   It had worked all along: `blueprints info` showed `Operation COMPLETED (1m 5s)`, and the
+   logs said "Updated 2 functions".
+3. **The Morgue:** `npm run deploy -- --yes` updated the existing app.
+4. **A live test on the real site (2 AI credits):**
+   - "Try an example", then "Report it dead".
+   - The deployed coroner flagged "Cron job that ran twice at DST" with a match score of
+     100: all four signals ✓, the new "Timezone, as the coroner suggested" wording, and
+     the reason "Both involve a Java scheduler timezone issue where a nightly job ran twice
+     after the clocks changed, giving customers duplicate invoices."
+   - The result arrived about 10 seconds after submitting. The report and its counters
+     were deleted afterwards (18 bugs, 0 reports, 0 counters).
+5. **The GIF** (`docs/post/zombie-detector.gif`, 800px wide, 8 fps, 31.5s, 4.6 MB):
+   - Recorded from that live run with Playwright's video, with a drawn-in cursor.
+   - ffmpeg sped up the wait for the coroner 8× and the page changes 1.4×. It then built
+     a 64-colour palette. The first attempts at 960px and 800px (12 fps) came out at
+     11.8 MB and 8.7 MB.
+6. **Stills for the post:** the report's result card (`detector.png`), the haunted grave
+   and its timeline (`haunted-grave.png`), the Studio's Confirm step (`studio-confirm.png`),
+   and a new homepage and zombie grave shot. The architecture diagram now includes the
+   detector.
+   - The first two came from a written copy of the live run's report. With
+     `coronerStatus` already set the deployed coroner skips it, so they cost no AI
+     credits, and the copy was deleted afterwards.
+7. **The DEV post was rewritten as one story:** "The graveyard remembers, so it can catch
+   what comes back."
+   - An updated TL;DR and a 30-second judge path.
+   - The Zombie Detector and Haunted state as the climax, with the GIF.
+   - One "Reaching past the Studio" section in place of three: the Morgue, the
+     gravedigger, the coroner, and Workflows (not live).
+   - Three snippets: the match-score formula, the 7-day rule and the document action
+     registration.
+   - A "What's next", and the corrected budget (15 reports a day, 2 × 15 × 31 = 930
+     credits).
+   - The update went through the API. Before each update, the script checked that the
+     live post still matched the last version I published. It sent only the body, and
+     checked afterwards that DEV had exactly the new body.
+   - Checked logged out:
+     - the 5 jump links (judge path, detector, Sanity Project Details, My Build Process,
+       Agent Session) land on their headings;
+     - both embeds render;
+     - all 12 article images load;
+     - all 9 links return 200.
+   - The DEV key was read from `.env.local` in memory, never printed, and its line was
+     deleted afterwards.
+- **AI credits for this phase, in total: about 24** (22 in testing, 2 in the live test).
+
+**What went wrong after approval**
+- **DEV kept serving three old images.**
+  - What happened: DEV stores its own copy of every image URL in a post
+    (`dev-to-uploads.s3…/uploads/articles/…`). The new homepage, zombie grave and diagram
+    shots kept their old file names, so the post showed the old versions (DEV's copy of
+    the homepage was 799,308 bytes, like the old file).
+  - The fix: the files got new names (`homepage-how-to-test.png`, `grave-timeline.png`,
+    `architecture-detector.png`) and the post was updated a second time. DEV's new copy of
+    the grave is 1440×1600, the new crop (the old one was 1440×1342).
+- **The key was removed too early.** I had deleted the DEV key line before checking the
+  images, and the key can't be shown again. So I revoked it and made a new one for the
+  second update.
+- **The network kept dropping requests** (`EHOSTUNREACH`, then `getaddrinfo ENOTFOUND
+  rzjmw6lg.api.sanity.io`). Every test script deletes its documents in a `finally`, so the
+  dataset stayed clean each time. The stills script now retries with a back-off.
+- **Smaller slips in the scripts:**
+  - Causes of death store their name in `title`, not `name`, so a lookup returned `null`
+    and Sanity refused the copy with `Value of "_ref" must be a string`. The script now
+    stops instead of taking stills of an empty page.
+  - A screenshot `clip` outside the viewport needs `fullPage: true`, or the image gets cut
+    off.
+  - A second visit to a grave page never reached Playwright's `networkidle` (the live
+    connection stays open), so the scripts wait for elements instead.
+  - In zsh, `"$3:stats_mode=diff"` is read as the `:s` substitution modifier
+    (`Invalid chars 'teuse=dither=none'` from ffmpeg). Braces fixed it: `${3}`.
+
+**For the judging period:** the site's example reports should be **dismissed, not
+confirmed**. Confirming one makes the DST cron grave rise, and after that "Try an example"
+no longer finds a grave it could match.

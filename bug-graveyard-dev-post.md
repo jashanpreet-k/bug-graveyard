@@ -50,7 +50,7 @@ The graves are classic bugs every developer has met: off-by-one errors, `0.1 + 0
 
 🪦 **Live site:** https://bug-graveyard.vercel.app
 
-![The Bug Graveyard homepage: a "How to test in 60 seconds" box with a "Built for the DEV × Sanity Challenge" badge, language and cause-of-death filters, and rows of tombstones under a full moon, including two glowing green zombie stones and one knocked-over, empty grave](https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/docs/post/homepage.png)
+![The Bug Graveyard homepage: a "How to test in 60 seconds" box with a "Built for the DEV × Sanity Challenge" badge, language and cause-of-death filters, and rows of tombstones under a full moon, including two glowing green zombie stones and one knocked-over, empty grave](https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/docs/post/homepage-how-to-test.png)
 
 The graveyard has four kinds of stone:
 
@@ -61,7 +61,7 @@ The graveyard has four kinds of stone:
 
 You can filter by language or cause of death. Each stone opens a grave page with a death certificate (cause of death, severity, hours to kill, killed by, component, symptoms and the fix), a **timeline** of every life the bug has had, and its past lives. The timezone bug is on its third life, and each life starts on a real daylight-saving switch (30 March 2025, 26 October 2025 and 29 March 2026), because of course it does.
 
-![The grave page of "Timezone bug in scheduler (Zombie #2)": a glowing zombie tombstone and its death certificate, then a vertical timeline (born, fix merged, buried, rose again as Zombie #1, fix merged, buried, rose again as Zombie #2, still walking) and a Past lives row with the two earlier graves](https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/docs/post/grave-zombie-2.png)
+![The grave page of "Timezone bug in scheduler (Zombie #2)": a glowing zombie tombstone and its death certificate, then a vertical timeline (born, fix merged, buried, rose again as Zombie #1, fix merged, buried, rose again as Zombie #2, still walking) and a Past lives row with the two earlier graves](https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/docs/post/grave-timeline.png)
 
 The **Most Haunted** leaderboard ranks the deadliest bugs (by the hours it took to kill them), the languages with the most zombies, the most common causes of death and the most resurrected chain.
 
@@ -267,7 +267,7 @@ Two traps we avoided on purpose:
 
 There are three document types: `bug`, `language` and `causeOfDeath`. Here's how everything reaches them:
 
-![Architecture: Sanity Studio with custom actions, the Content Lake, two Sanity Functions (the gravedigger, and the coroner with Agent Actions and the Zombie Detector), the Morgue App SDK app, and the Next.js site with the Live Content API, a signed webhook and the report form, plus the Workflows experiment on a branch](https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/docs/post/architecture.png)
+![Architecture: Sanity Studio with custom actions, the Content Lake, two Sanity Functions (the gravedigger, and the coroner with Agent Actions and the Zombie Detector), the Morgue App SDK app, and the Next.js site with the Live Content API, a signed webhook and the report form, plus the Workflows experiment on a branch](https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/docs/post/architecture-detector.png)
 
 ### The schema: zombies are documents, not checkboxes
 

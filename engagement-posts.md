@@ -49,12 +49,8 @@ Built a graveyard for fixed bugs 🪦
 
 When a bug comes back, it rises as a zombie. A detector shows why it might be the same bug (same cause, component, keywords).
 
-For the DEV x Sanity challenge
+For the DEV x Sanity challenge @sanity_io @ThePracticalDev
 
-https://bug-graveyard.vercel.app
 https://dev.to/jashanpreet_kaur_917e774f/bug-graveyard-where-fixed-bugs-are-buried-and-regressions-rise-as-zombies-5hcf
-https://github.com/jashanpreet-k/bug-graveyard
 
-@sanity_io @ThePracticalDev
-
-Character count: 296 as X counts it (each link counts as 23, the emoji as 2; 423 characters as typed). That's 16 over X's 280 limit.
+Character count: 247 as X counts it (the link counts as 23, the emoji as 2).

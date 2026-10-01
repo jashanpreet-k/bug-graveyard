@@ -2257,3 +2257,11 @@ Make the demo safe for the judging period (Oct 5–22) without breaking anything
 - **One field keeps a Function away:** writing `coronerStatus` at creation means the
   coroner's event filter (`!defined(coronerStatus)`) never fires. So the site can run the
   pure-code detector itself when the AI budget is used.
+- **The DEV post:** one sentence about limits was now wrong ("The graveyard takes 15
+  reports a day in total; if it's full, the GIF … shows the same run"), so I changed 4
+  lines: judge path step 4 (Haunted "for an hour"), the note under it (examples aren't
+  listed, and the budget fallback), and two lines in "Try it". The update went through the
+  usual check (the live post matched the last published version) and only replaced the
+  body. Checked logged out: the new text is in and the old is gone, the 5 jump links and
+  both embeds work, and all images load. The key's line was deleted from `.env.local`
+  afterwards.

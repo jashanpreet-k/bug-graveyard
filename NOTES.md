@@ -2280,3 +2280,21 @@ Make the demo safe for the judging period (Oct 5–22) without breaking anything
   /report lets you try the detector without one." The update went through the usual
   check. Checked logged out: the sentence and its link, 3 bullets, all images, both embeds
   and every jump link. The key's line was deleted from `.env.local` afterwards.
+
+### Personal section and engagement drafts (2026-10-01)
+Added personal section to DEV post; engagement drafts saved.
+- **The post:** `personal.md` was inserted word for word under "## Why I built this (in my own
+  words)", between the TL;DR and the judge path. The update went through the usual check:
+  the live post matched the baseline, and the diff showed only that section. Checked logged
+  out:
+  - the section sits after the TL;DR;
+  - 12/12 images load and the video embed is there;
+  - all 20 jump links land on a heading;
+  - the post is still published, with the same title and tags.
+
+  The key's line was deleted from `.env.local` afterwards (`grep -c` found 0).
+- **`engagement-posts.md`** (from `engagement-draft.md`, wording unchanged): sections for
+  the DEV comment, the Sanity Discord, LinkedIn and X, with the missing links and the
+  @Sanity / @DEV and @sanity_io / @ThePracticalDev tags added. The X post comes to 296 as
+  X counts it, 16 over the 280 limit, so it needs shortening before posting. None of them
+  is posted.

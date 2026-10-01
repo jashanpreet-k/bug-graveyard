@@ -2163,3 +2163,97 @@ bug.
 **For the judging period:** the site's example reports should be **dismissed, not
 confirmed**. Confirming one makes the DST cron grave rise, and after that "Try an example"
 no longer finds a grave it could match.
+
+---
+
+## Phase 14: A judge-proof demo (2026-10-01)
+
+### What I asked for
+Make the demo safe for the judging period (Oct 5–22) without breaking anything:
+- **Example reports:** "Try an example" reports are marked `isExample`. They show their
+  full result to the visitor who sent one, but they're dismissed and removed after an
+  hour, never leave the DST grave haunted for good, never appear in the public list, and
+  the Confirm action refuses them.
+- **When the daily AI budget is used:** "Try an example" falls back to the detector's
+  score and signals (they need no AI) with "Reason unavailable, daily AI budget used",
+  and real reports get a friendly message, not a crash.
+- Test both paths, deploy, check the live site, and only touch the DEV post if a sentence
+  about limits is now wrong.
+
+### What was built
+- `sanity/lib/publicReport.ts`:
+  - the example moved here from the form, so the server recognises it (`isExampleReport`:
+    all four fields exactly as the button fills them in);
+  - `EXAMPLE_LIFETIME_SECONDS = 3600`, the expired-examples query and its cutoff;
+  - flood caps for examples (10 per visitor and 200 in total a day).
+- `app/(site)/report/actions.ts`:
+  - **Examples count toward the AI budget** (3 per visitor, 15 a day).
+  - **Within it**, the coroner examines an example as usual.
+  - **Beyond it**, the action runs the Zombie Detector itself and stores the result with
+    `coronerStatus: "skipped"`, which the coroner Function's filter leaves alone.
+  - **Real reports over the budget** get "The coroner has used today's AI budget… “👻 Try
+    an example” still works".
+  - After answering, `after()` deletes expired examples and yesterday's counters.
+  - Any unexpected error now returns a message instead of an error page.
+- `sanity/lib/queries.ts`:
+  - **Haunting:** an example only counts within its hour:
+    `isExample != true || dateTime(publicReport.submittedAt) > dateTime(now()) - 3600`.
+  - **Report page:** the public list leaves examples out, and a separate `examples` list
+    (never shown) lets "Your report" find the visitor's own.
+- `functions/gravedigger`: deletes expired examples every day (the backstop for quiet days),
+  without letting a failure stop the burials.
+- `functions/coroner` and `sanity/lib/detector.ts`: the graves query is shared, so the site's
+  fallback and the coroner compare against exactly the same graves.
+- In the Studio:
+  - **Actions:** Confirm resurrection, Accept coroner's report and Approve public report
+    are disabled on examples, with the reason ("An example report can't join the graveyard
+    or rise…").
+  - **Lists:** the work lists (and the Morgue) leave examples out.
+  - **Schema:** the new optional `isExample` field and a "💤 Skipped" coroner status.
+- On the site: example wording on the result ("It's an example, so nobody needs to confirm
+  it…"), on the haunted notice and timeline, and in the homepage's step 4. The report
+  page's note explains the budget fallback.
+
+### What went wrong and how we fixed it
+- **TypeGen couldn't read `60 * 60`:**
+  `Unsupported expression type: BinaryExpression in sanity/lib/publicReport.ts:55:40`. It
+  follows imported constants into the queries but can't evaluate them. A literal `3600`
+  fixed it.
+- **The network dropped again** (`getaddrinfo ENOTFOUND rzjmw6lg.api.sanity.io`) on the
+  test's first request, which only reads, so nothing had changed. A rerun worked.
+- **The live test needed care during judging:** it stops if anyone else's reports exist,
+  deletes only what it created, and puts the day's AI counter back (plus the one example
+  that really used AI).
+
+### Tests
+- **Local production build against the real dataset, 25/25, no AI credits:**
+  - **Haunting:** an example 2 hours old doesn't haunt the DST grave; one 30 minutes old
+    does, with the example wording on the grave page and timeline.
+  - **Budget used:** the example was taken. It was stored with `coronerStatus: "skipped"`
+    and scored 75 (no cause to compare, since the coroner didn't suggest one). "Your report"
+    showed the checklist, "Reason unavailable, daily AI budget used." and the example
+    line. The public list stayed empty, and the deployed coroner never touched it.
+  - **Cleanup:** that report's `after()` deleted the expired example and its draft, and kept
+    the recent one. The gravedigger (local runner) logged
+    `👻 Deleted 1 example report(s) older than an hour` and `⚰️ Nothing to bury on 2026-10-01.`
+  - **Real report over the budget:** the friendly message, nothing stored, and the form kept
+    what was typed.
+  - **Studio:** Confirm, Accept and Approve are disabled on examples with the reason;
+    Dismiss still works.
+- **Deployed:** `blueprints deploy` ("Updated 2 functions"), `main` pushed (Vercel), and the
+  Morgue redeployed.
+- **Live, 14/14 (2 AI credits):**
+  - **Within the budget:** the deployed coroner examined an example (draft, score 100, a
+    reason). It wasn't listed, and the grave was haunted with the example wording.
+  - **Cleanup:** backdated past its hour, it was deleted by the next report.
+  - **Budget used:** that next example got the detector alone.
+  - **Real report over the budget:** the friendly message.
+- Everything was deleted afterwards (18 bugs, 0 reports).
+
+### Sanity notes for the write-up
+- **GROQ's `now()` makes an expiry without a timer.** The haunted state of an example ends
+  after an hour in the query itself, so even before the cleanup runs, any refreshed page
+  shows the grave at rest.
+- **One field keeps a Function away:** writing `coronerStatus` at creation means the
+  coroner's event filter (`!defined(coronerStatus)`) never fires. So the site can run the
+  pure-code detector itself when the AI budget is used.

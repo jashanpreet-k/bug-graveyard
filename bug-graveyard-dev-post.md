@@ -20,9 +20,9 @@ cover_image: https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/
 1. Open [the timezone bug's third life](https://bug-graveyard.vercel.app/grave/tz-scheduler-z2) and follow its **Timeline**: born, fix merged, buried, rose again, twice.
 2. Go to [Report a dead bug](https://bug-graveyard.vercel.app/report), press **👻 Try an example**, then **Report it dead**.
 3. In about 10 seconds, your report shows **"⚠️ Possible resurrection of Cron job that ran twice at DST"**, with each signal ✓/✗, the match score and the old fix.
-4. Back on [the graveyard](https://bug-graveyard.vercel.app), that grave is now **👻 Haunted** until I confirm or dismiss it in the Studio.
+4. Back on [the graveyard](https://bug-graveyard.vercel.app), that grave is now **👻 Haunted** for an hour, until the example is dismissed automatically.
 
-*Your report waits under "Awaiting the coroner's approval" until I look at it. The graveyard takes 15 reports a day in total; if it's full, the GIF [further down](#the-zombie-detector) shows the same run.*
+*Examples stay out of the public list and can't be approved, so trying it changes nothing for the next judge. The coroner's AI budget is 15 reports a day; once it's used, "Try an example" still shows the detector's signals and score (they need no AI), just with "Reason unavailable, daily AI budget used" instead of the one-sentence reason.*
 
 {% embed https://www.youtube.com/watch?v=Tdj_If8i3Ls %}
 
@@ -183,12 +183,12 @@ I tested it on the real dataset with temporary bugs, all deleted afterwards:
 
 ### Try it: report a dead bug
 
-The [report page](https://bug-graveyard.vercel.app/report) lets anyone add a bug. Within seconds the coroner drafts its epitaph, the detector checks the graves, and the result appears under the form. The bug then waits under "Awaiting the coroner's approval" until I accept it in the Studio; only then does it join the graveyard. **👻 Try an example** fills in a scheduler bug that ran twice after a daylight-saving switch, so you reliably see a detection.
+The [report page](https://bug-graveyard.vercel.app/report) lets anyone add a bug. Within seconds the coroner drafts its epitaph, the detector checks the graves, and the result appears under the form. The bug then waits under "Awaiting the coroner's approval" until I accept it in the Studio; only then does it join the graveyard. **👻 Try an example** fills in a scheduler bug that ran twice after a daylight-saving switch, so you reliably see a detection. Examples skip that list, haunt their grave for an hour and are then deleted, and the Studio refuses to confirm them.
 
 Every report costs an AI credit (two when it looks like a resurrection), so the form is guarded like any public form that costs money:
 
 - a honeypot field that bots fill in and people never see;
-- 3 reports per visitor and 15 in total a day, counted in private documents (a dot in the ID keeps them out of the public API), with the visitor's IP stored only as a keyed hash;
+- 3 reports per visitor and 15 in total a day get the coroner (examples included), counted in private documents (a dot in the ID keeps them out of the public API), with the visitor's IP stored only as a keyed hash. After that, real reports get a friendly "come back tomorrow", and examples get the detector alone;
 - length limits, no links, and a profanity filter on both the reports and the AI's drafts before they're shown.
 
 That's at most 2 × 15 × 31 = 930 credits a month, under the 1,000 free AI credits.

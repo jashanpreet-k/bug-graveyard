@@ -2265,3 +2265,18 @@ Make the demo safe for the judging period (Oct 5–22) without breaking anything
   body. Checked logged out: the new text is in and the old is gone, the 5 jump links and
   both embeds work, and all images load. The key's line was deleted from `.env.local`
   afterwards.
+
+### Final polish (2026-10-01)
+- **The honeypot** on `/report` was already fully hidden, so nothing changed. Checked live
+  at 1440px and 375px (14/14):
+  - it sits about 9,700px off the left edge, inside `aria-hidden="true"`, and out of the
+    accessibility tree;
+  - it has `tabIndex -1` and `autocomplete="off"`, and isn't `required`;
+  - Tab goes name → language → component → what happened → submit without landing on it,
+    and the page doesn't scroll sideways.
+- **The DEV post:** "What's next" went from 4 bullets to 3 (the Workflows bullet is gone;
+  the post still covers Workflows under "Reaching past the Studio"). It now has one new
+  sentence above the video: "The Studio needs a Sanity login, so the video shows it;
+  /report lets you try the detector without one." The update went through the usual
+  check. Checked logged out: the sentence and its link, 3 bullets, all images, both embeds
+  and every jump link. The key's line was deleted from `.env.local` afterwards.

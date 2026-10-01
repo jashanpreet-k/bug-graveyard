@@ -24,6 +24,8 @@ cover_image: https://raw.githubusercontent.com/jashanpreet-k/bug-graveyard/main/
 
 *Examples stay out of the public list and can't be approved, so trying it changes nothing for the next judge. The coroner's AI budget is 15 reports a day; once it's used, "Try an example" still shows the detector's signals and score (they need no AI), just with "Reason unavailable, daily AI budget used" instead of the one-sentence reason.*
 
+The Studio needs a Sanity login, so the video shows it; [/report](https://bug-graveyard.vercel.app/report) lets you try the detector without one.
+
 {% embed https://www.youtube.com/watch?v=Tdj_If8i3Ls %}
 
 *A 90-second tour of the site, the Studio's lifecycle actions and Tombstone view, the AI coroner and the Morgue. I recorded it before building the Zombie Detector; the GIF below shows that part. The Studio scenes use temporary test bugs, deleted afterwards.*
@@ -356,6 +358,5 @@ This is the Claude Code session behind this build, with secrets redacted. The em
 - **Real fixes.** Fill `fixUrl` from merged pull requests (a GitHub webhook into a Function), so "the previous fix" links straight to the diff. The 18 graves here are invented, so their `fixUrl` is empty on purpose.
 - **Learn from dismissals.** Every dismissed match keeps its signals, which is exactly the data needed to tune the weights and the threshold.
 - **A fifth signal, clearly labelled.** A semantic comparison of symptoms could join the four, still shown ✓/✗ with its points, never as a mystery percentage.
-- **Workflows,** once the project moves to Studio 6.
 
 Thanks for reading. May your bugs rest in peace, and may the graveyard catch them when they don't. 🪦

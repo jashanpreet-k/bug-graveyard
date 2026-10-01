@@ -8,6 +8,6 @@ I want to be upfront about how it was built. I didn't write most of this code by
 
 I don't have years of my own bug history, so the graves are classic bugs every developer has met: floating point money, timezones, merge conflicts in production. I'd rather be honest about that than pretend they're mine.
 
-After reading other entries, I realised a cute graveyard wasn't enough. That's when the Zombie Detector happened. The moment it flagged a new "dates are off by one day" report as a possible return of the timezone bug, and showed me exactly why (same cause, same component, shared words), was the moment this stopped feeling like a joke project to me.
+After reading other entries, I realised a cute graveyard wasn't enough. That's when the Zombie Detector happened. The moment it flagged a new report about a nightly job as a possible return of the timezone bug, and showed me exactly why (same cause, same component, shared words), was the moment this stopped feeling like a joke project to me.
 
 The biggest thing I learned: Sanity is not just a place to store content. Custom actions, a Tombstone preview inside the Studio, scheduled Functions, an app in the Dashboard. It felt more like building a small tool than filling a CMS.

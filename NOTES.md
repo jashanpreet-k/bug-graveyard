@@ -2298,3 +2298,9 @@ Added personal section to DEV post; engagement drafts saved.
   @Sanity / @DEV and @sanity_io / @ThePracticalDev tags added. The X post comes to 296 as
   X counts it, 16 over the 280 limit, so it needs shortening before posting. None of them
   is posted.
+- **A wording fix:** in `personal.md` and the post, "a new "dates are off by one day" report"
+  became "a new report about a nightly job" (the report the detector was actually tested
+  with). It went through the same safe update. Checked logged out: the new wording is in
+  and the old is gone, the section still follows the TL;DR, 12/12 images load, the video
+  is there, all 20 jump links land, and the post is published with the same tags. The
+  key's line was deleted afterwards (`grep -c` found 0).

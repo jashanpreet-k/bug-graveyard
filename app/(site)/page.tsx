@@ -114,7 +114,7 @@ function HowToTest() {
           </li>
           <li className={step}>
             <span className={number} aria-hidden>4</span>
-            <span>Back here, the old grave is 👻 Haunted until the graveyard keeper confirms or dismisses it.</span>
+            <span>Back here, the old grave is 👻 Haunted for an hour, then the example is dismissed automatically.</span>
           </li>
         </ol>
       </div>

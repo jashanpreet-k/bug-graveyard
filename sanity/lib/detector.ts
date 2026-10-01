@@ -150,3 +150,19 @@ export function findResurrection(bug: DetectorBug, graves: DetectorBug[]) {
   const best = matches[0] ?? null
   return {best, passes: Boolean(best && best.score >= MATCH_THRESHOLD)}
 }
+
+/** GROQ: what the detector compares, for any bug. */
+export const DETECTOR_FIELDS = `name, component, symptoms,
+  "causeId": causeOfDeath._ref, "cause": causeOfDeath->title,
+  "languageId": language._ref, "language": language->name`
+
+/**
+ * GROQ: every grave that could rise again (fix merged or buried, not risen yet, not a
+ * report still waiting for approval), except the new bug $id itself. Used by the
+ * coroner function, and by the report page when an example skips the AI.
+ */
+export const RISING_GRAVES_QUERY = `*[_type == "bug" && _id != $id && !(_id in path("drafts.**")) && !(_id in path("versions.**"))
+    && status in ["fix-merged", "buried"]
+    && !(defined(publicReport) && publicReport.status == "pending")
+    && count(*[_type == "bug" && previousLife._ref == ^._id && !(_id in path("drafts.**"))]) == 0
+  ]{_id, ${DETECTOR_FIELDS}}`

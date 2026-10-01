@@ -2,7 +2,14 @@ import {createClient} from '@sanity/client'
 import {documentEventHandler} from '@sanity/functions'
 
 import {CORONER_AWAITING} from '../../sanity/lib/coroner'
-import {type DetectorBug, findResurrection, MATCH_CANDIDATE, MATCH_NONE} from '../../sanity/lib/detector'
+import {
+  DETECTOR_FIELDS,
+  type DetectorBug,
+  findResurrection,
+  MATCH_CANDIDATE,
+  MATCH_NONE,
+  RISING_GRAVES_QUERY,
+} from '../../sanity/lib/detector'
 import {EPITAPH_MAX_LENGTH} from '../../sanity/lib/epitaph'
 
 // The coroner: a document Sanity Function. When a new bug is published as suspected
@@ -45,10 +52,6 @@ interface Context {
   graves: DetectorBug[]
 }
 
-const DETECTOR_FIELDS = `name, component, symptoms,
-  "causeId": causeOfDeath._ref, "cause": causeOfDeath->title,
-  "languageId": language._ref, "language": language->name`
-
 // The bug as it is now; the causes to choose from; real graves' epitaphs as
 // examples; and every grave that could rise again (fix merged or buried, not risen
 // yet, not a report still waiting for approval), for the detector
@@ -56,11 +59,7 @@ const CONTEXT_QUERY = `{
   "bug": *[_id == $id][0]{status, epitaph, coronerStatus, "whatHappened": publicReport.whatHappened, ${DETECTOR_FIELDS}},
   "causes": *[_type == "causeOfDeath"] | order(title asc) {_id, title, description},
   "examples": *[_type == "bug" && string::startsWith(_id, "grave-") && defined(epitaph)] | order(_id asc)[0...12].epitaph,
-  "graves": *[_type == "bug" && _id != $id && !(_id in path("drafts.**")) && !(_id in path("versions.**"))
-    && status in ["fix-merged", "buried"]
-    && !(defined(publicReport) && publicReport.status == "pending")
-    && count(*[_type == "bug" && previousLife._ref == ^._id && !(_id in path("drafts.**"))]) == 0
-  ]{_id, ${DETECTOR_FIELDS}}
+  "graves": ${RISING_GRAVES_QUERY}
 }`
 
 const INSTRUCTION = `You are the coroner of the Bug Graveyard, a memorial website for software bugs that developers have fixed. Every bug gets a tombstone with a short, dry, funny epitaph.

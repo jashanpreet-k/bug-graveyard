@@ -3,21 +3,17 @@
 import {useActionState, useState} from 'react'
 
 import {ReportResult, type ReportView} from '@/components/ReportResult'
-import {REPORT_COMPONENT_MAX, REPORT_NAME_MAX, REPORT_STORY_MAX, REPORT_STORY_MIN} from '@/sanity/lib/publicReport'
+import {
+  EXAMPLE_REPORT,
+  REPORT_COMPONENT_MAX,
+  REPORT_NAME_MAX,
+  REPORT_STORY_MAX,
+  REPORT_STORY_MIN,
+} from '@/sanity/lib/publicReport'
 
 import {type ReportState, submitReport} from './actions'
 
 const INITIAL: ReportState = {status: 'idle', message: ''}
-
-// For judges: a report the Zombie Detector reliably recognises (the "Cron job that
-// ran twice at DST" grave: same language, component, and plenty of shared words)
-const EXAMPLE: NonNullable<ReportState['values']> = {
-  name: 'Nightly job ran twice after the clocks changed',
-  language: 'language-java',
-  component: 'scheduler',
-  whatHappened:
-    'After the daylight-saving switch on Sunday, the nightly billing job ran twice at 01:30 and customers got two invoices. We thought this was fixed last year.',
-}
 
 const field =
   'mt-1.5 w-full rounded-lg border border-bone/20 bg-night/60 px-3 py-2 text-bone placeholder:text-bone/40 focus-visible:border-moss focus-visible:outline-2 focus-visible:outline-moss'
@@ -27,19 +23,26 @@ export function ReportForm({
   languages,
   components,
   reports,
+  examples,
 }: {
   languages: {_id: string; name: string | null}[]
   components: string[]
+  /** The public list of reports awaiting approval */
   reports: ReportView[]
+  /** This hour's examples: never listed, only shown to the visitor who sent one */
+  examples: ReportView[]
 }) {
   const [state, action, pending] = useActionState(submitReport, INITIAL)
   const [example, setExample] = useState<{at: number} | null>(null)
   // Whichever came last wins: "Try an example" fills the form in, an error keeps what
   // was typed, and a report starts it empty again
   const exampleNewer = Boolean(example && example.at > (state.at ?? 0))
-  const values = exampleNewer ? EXAMPLE : state.status === 'error' ? state.values : undefined
+  const values = exampleNewer ? EXAMPLE_REPORT : state.status === 'error' ? state.values : undefined
   const formKey = exampleNewer ? `example-${example?.at}` : `${state.status}-${state.at ?? 0}`
-  const mine = state.status === 'ok' && state.reportId ? reports.find((report) => report._id === state.reportId) : undefined
+  const mine =
+    state.status === 'ok' && state.reportId
+      ? [...reports, ...examples].find((report) => report._id === state.reportId)
+      : undefined
 
   return (
     <div className="flex flex-col gap-6">

@@ -12,6 +12,10 @@ export interface ReportView {
   language: string | null
   whatHappened: string | null
   submittedAt: string | null
+  /** Sent with "Try an example": never listed, dismissed and deleted after an hour */
+  isExample: boolean
+  /** The daily AI budget was used, so only the Zombie Detector ran (no draft, no reason) */
+  aiSkipped: boolean
   /** The coroner's draft epitaph, if it passed the check */
   draft: string | null
   /** The coroner wrote a draft that failed the check */
@@ -34,9 +38,13 @@ export function ReportResult({report}: {report: ReportView}) {
     <div className="flex flex-col gap-4">
       <Detector report={report} />
       <div>
-        {report.draft ? (
+        {report.aiSkipped ? (
+          <p className="text-bone/70">💤 No epitaph draft: the coroner rests once the daily AI budget is used.</p>
+        ) : report.draft ? (
           <>
-            <p className="text-xs tracking-wide text-moss uppercase">Coroner’s draft · awaiting approval</p>
+            <p className="text-xs tracking-wide text-moss uppercase">
+              Coroner’s draft · {report.isExample ? 'an example, not kept' : 'awaiting approval'}
+            </p>
             <p className="mt-1 font-serif text-base text-bone italic">“{report.draft}”</p>
             {report.cause && <p className="mt-1 text-bone/70">Cause of death: {report.cause}</p>}
           </>
@@ -81,7 +89,11 @@ function Detector({report}: {report: ReportView}) {
           Match score <strong className="text-bone">{report.matchScore}</strong> from {report.signals.length} signals (a
           possible resurrection needs {MATCH_THRESHOLD}).
         </p>
-        {report.reason && <p className="mt-2 text-sm text-bone/80 italic">{report.reason}</p>}
+        {report.reason ? (
+          <p className="mt-2 text-sm text-bone/80 italic">{report.reason}</p>
+        ) : (
+          report.aiSkipped && <p className="mt-2 text-sm text-bone/60 italic">Reason unavailable, daily AI budget used.</p>
+        )}
         {candidate.fixSummary && (
           <p className="mt-2 text-sm text-bone/70">
             The previous fix: {candidate.fixSummary}
@@ -92,7 +104,11 @@ function Detector({report}: {report: ReportView}) {
             )}
           </p>
         )}
-        <p className="mt-2 text-sm text-[#dbe6ff]">The graveyard keeper will confirm it.</p>
+        <p className="mt-2 text-sm text-[#dbe6ff]">
+          {report.isExample
+            ? 'It’s an example, so nobody needs to confirm it: it’s dismissed automatically after an hour.'
+            : 'The graveyard keeper will confirm it.'}
+        </p>
       </div>
     )
   }

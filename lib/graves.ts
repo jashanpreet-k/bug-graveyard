@@ -105,7 +105,7 @@ export function timelineOf({
   hasOlderLives: boolean
   grave: TimelineLife
   risen: TimelineLife[]
-  haunting: {name: string; matchScore: number | null; reportedAt: string | null} | null
+  haunting: {name: string; matchScore: number | null; reportedAt: string | null; isExample: boolean} | null
 }) {
   const events: TimelineEvent[] = []
   if (hasOlderLives) events.push({key: 'older', icon: '⋯', title: 'Earlier lives', date: null, detail: 'This bug died more times than shown here.'})
@@ -130,7 +130,7 @@ export function timelineOf({
       icon: '👻',
       title: 'Haunted',
       date: haunting.reportedAt,
-      detail: `“${haunting.name}” was reported and might be this bug coming back (match score ${haunting.matchScore ?? '?'} from 4 signals). The graveyard keeper will confirm it.`,
+      detail: `“${haunting.name}” was ${haunting.isExample ? 'sent as an example' : 'reported'} and might be this bug coming back (match score ${haunting.matchScore ?? '?'} from 4 signals). ${haunting.isExample ? 'Examples are dismissed automatically after an hour.' : 'The graveyard keeper will confirm it.'}`,
       current: true,
     })
   } else if (grave.status === 'zombie' && !grave.fixMergedAt) {

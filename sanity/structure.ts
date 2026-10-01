@@ -22,7 +22,8 @@ export const structure: StructureResolver = (S) =>
     ])
 
 // Only "Suspected dead" offers "create": a new bug always starts there, and the
-// other statuses are reached through the lifecycle actions.
+// other statuses are reached through the lifecycle actions. The report page's
+// examples stay out of these lists (they clear themselves); "All graves" has them.
 function bugsWithStatus(S: StructureBuilder, status: BugStatus, title: string, icon: string) {
   return S.listItem()
     .id(status)
@@ -34,7 +35,7 @@ function bugsWithStatus(S: StructureBuilder, status: BugStatus, title: string, i
         .title(title)
         .schemaType('bug')
         .apiVersion(apiVersion)
-        .filter('_type == "bug" && status == $status')
+        .filter('_type == "bug" && status == $status && isExample != true')
         .params({status})
         .defaultOrdering([{field: '_updatedAt', direction: 'desc'}])
         .initialValueTemplates(status === 'suspected-dead' ? [S.initialValueTemplateItem('bug')] : []),
@@ -53,7 +54,7 @@ function pendingReports(S: StructureBuilder) {
         .title('Public reports (pending)')
         .schemaType('bug')
         .apiVersion(apiVersion)
-        .filter('_type == "bug" && publicReport.status == "pending"')
+        .filter('_type == "bug" && publicReport.status == "pending" && isExample != true')
         .defaultOrdering([{field: '_createdAt', direction: 'desc'}])
         .initialValueTemplates([]),
     )
@@ -71,7 +72,7 @@ function possibleResurrections(S: StructureBuilder) {
         .title('Possible resurrections')
         .schemaType('bug')
         .apiVersion(apiVersion)
-        .filter('_type == "bug" && matchStatus == "candidate"')
+        .filter('_type == "bug" && matchStatus == "candidate" && isExample != true')
         .defaultOrdering([{field: '_createdAt', direction: 'desc'}])
         .initialValueTemplates([]),
     )

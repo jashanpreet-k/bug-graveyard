@@ -6,8 +6,11 @@
 export const CORONER_AWAITING = 'awaiting approval'
 /** A person accepted the report, which copied it into the real fields. */
 export const CORONER_ACCEPTED = 'accepted'
+/** No AI today: the daily AI budget was used, so only the Zombie Detector ran (examples only). */
+export const CORONER_SKIPPED = 'skipped'
 
 export const CORONER_STATUSES = [
   {title: '⏳ Awaiting approval', value: CORONER_AWAITING},
   {title: '✅ Accepted', value: CORONER_ACCEPTED},
+  {title: '💤 Skipped: the daily AI budget was used', value: CORONER_SKIPPED},
 ] as const

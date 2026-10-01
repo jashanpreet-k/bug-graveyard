@@ -298,6 +298,10 @@
             {
               "type": "string",
               "value": "accepted"
+            },
+            {
+              "type": "string",
+              "value": "skipped"
             }
           ]
         },
@@ -427,6 +431,13 @@
         "type": "objectAttribute",
         "value": {
           "type": "string"
+        },
+        "optional": true
+      },
+      "isExample": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "boolean"
         },
         "optional": true
       },

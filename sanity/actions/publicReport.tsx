@@ -3,7 +3,7 @@ import {type DocumentActionComponent, type SanityDocument, useClient} from 'sani
 
 import {apiVersion} from '../env'
 import {CORONER_AWAITING} from '../lib/coroner'
-import {REPORT_APPROVED, REPORT_PENDING} from '../lib/publicReport'
+import {EXAMPLE_REFUSAL, REPORT_APPROVED, REPORT_PENDING} from '../lib/publicReport'
 import {blockedBecause, useRun} from './lifecycle'
 
 // "🗳️ Approve public report": lets a bug reported on the site into the graveyard as
@@ -14,6 +14,7 @@ import {blockedBecause, useRun} from './lifecycle'
 type ReportedBug = SanityDocument & {
   coronerStatus?: string
   publicReport?: {status?: string}
+  isExample?: boolean
 }
 
 export const ApprovePublicReportAction: DocumentActionComponent = (props) => {
@@ -23,7 +24,8 @@ export const ApprovePublicReportAction: DocumentActionComponent = (props) => {
   const bug = props.published as ReportedBug | null
 
   if (bug?.publicReport?.status !== REPORT_PENDING || bug.coronerStatus === CORONER_AWAITING) return null
-  const blocked = blockedBecause(props)
+  // The report page's examples never join the graveyard
+  const blocked = bug.isExample ? EXAMPLE_REFUSAL : blockedBecause(props)
 
   function approve() {
     setConfirming(false)

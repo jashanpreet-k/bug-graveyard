@@ -286,6 +286,19 @@ export const bug = defineType({
       description: 'One sentence written by an Agent Action from the signals above.',
     }),
 
+    // Set by the report page for its "Try an example" report. An example never joins the
+    // graveyard or rises, and it's deleted after an hour.
+    defineField({
+      name: 'isExample',
+      title: 'Example report',
+      type: 'boolean',
+      group: 'report',
+      readOnly: true,
+      hidden: ({document}) => document?.isExample !== true,
+      description:
+        'Sent with the report page’s “Try an example” button. It can’t join the graveyard or rise, and it’s deleted automatically after an hour.',
+    }),
+
     // Public report: set when someone reports the bug on the site's report page. A
     // pending report stays out of the graveyard until someone approves it here.
     defineField({

@@ -60,7 +60,7 @@ export type Bug = {
   epitaph?: string;
   previousLife?: BugReference;
   timesResurrected?: number;
-  coronerStatus?: "awaiting approval" | "accepted";
+  coronerStatus?: "awaiting approval" | "accepted" | "skipped";
   coronerEpitaph?: string;
   coronerCause?: CauseOfDeathReference;
   matchStatus?: "candidate" | "none" | "confirmed" | "dismissed";
@@ -76,6 +76,7 @@ export type Bug = {
     _key: string;
   }>;
   matchReason?: string;
+  isExample?: boolean;
   publicReport?: {
     status?: "pending" | "approved";
     whatHappened?: string;
@@ -243,7 +244,7 @@ export type AllSanitySchemaTypes =
 
 // Source: sanity/lib/queries.ts
 // Variable: GRAVEYARD_QUERY
-// Query: *[_type == "bug" && !(defined(publicReport) && publicReport.status == "pending")    && (!defined($language) || language->name == $language)    && (!defined($cause) || causeOfDeath->title == $cause)  ] | order(coalesce(buriedAt, fixMergedAt, bornAt) desc, name asc) {    _id,    name,    "slug": slug.current,    status,    epitaph,    bornAt,    fixMergedAt,    buriedAt,    language->{name, color},    causeOfDeath->{title},    "previousLife": previousLife->{name},    "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0,    "haunted": count(*[_type == "bug" && matchStatus == "candidate" && resurrectionCandidate._ref == ^._id]) > 0  }
+// Query: *[_type == "bug" && !(defined(publicReport) && publicReport.status == "pending")    && (!defined($language) || language->name == $language)    && (!defined($cause) || causeOfDeath->title == $cause)  ] | order(coalesce(buriedAt, fixMergedAt, bornAt) desc, name asc) {    _id,    name,    "slug": slug.current,    status,    epitaph,    bornAt,    fixMergedAt,    buriedAt,    language->{name, color},    causeOfDeath->{title},    "previousLife": previousLife->{name},    "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0,    "haunted": count(*[_type == "bug" && matchStatus == "candidate" && resurrectionCandidate._ref == ^._id && (isExample != true || dateTime(publicReport.submittedAt) > dateTime(now()) - 3600)]) > 0  }
 export type GRAVEYARD_QUERY_RESULT = Array<{
   _id: string;
   name: string;
@@ -269,7 +270,7 @@ export type GRAVEYARD_QUERY_RESULT = Array<{
 
 // Source: sanity/lib/queries.ts
 // Variable: GRAVE_QUERY
-// Query: *[_type == "bug" && slug.current == $slug && !(defined(publicReport) && publicReport.status == "pending")][0] {    _id,    name,    "slug": slug.current,    status,    severity,    epitaph,    killedBy,    hoursToKill,    bornAt,    fixMergedAt,    buriedAt,    timesResurrected,    component,    symptoms,    fixSummary,    fixUrl,    language->{name, color},    causeOfDeath->{title, description},    "haunting": *[_type == "bug" && matchStatus == "candidate" && resurrectionCandidate._ref == ^._id]      | order(_createdAt desc)[0]{name, matchScore, "reportedAt": coalesce(publicReport.submittedAt, _createdAt)},    "previousLife": previousLife->{      name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,      "previousLife": previousLife->{        name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,        "previousLife": previousLife->{          name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,          "hasOlderLives": defined(previousLife)        }      }    },    "risen": *[_type == "bug" && previousLife._ref == ^._id] | order(bornAt asc) {      name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,      "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0    }  }
+// Query: *[_type == "bug" && slug.current == $slug && !(defined(publicReport) && publicReport.status == "pending")][0] {    _id,    name,    "slug": slug.current,    status,    severity,    epitaph,    killedBy,    hoursToKill,    bornAt,    fixMergedAt,    buriedAt,    timesResurrected,    component,    symptoms,    fixSummary,    fixUrl,    language->{name, color},    causeOfDeath->{title, description},    "haunting": *[_type == "bug" && matchStatus == "candidate" && resurrectionCandidate._ref == ^._id && (isExample != true || dateTime(publicReport.submittedAt) > dateTime(now()) - 3600)]      | order(_createdAt desc)[0]{name, matchScore, "reportedAt": coalesce(publicReport.submittedAt, _createdAt), "isExample": isExample == true},    "previousLife": previousLife->{      name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,      "previousLife": previousLife->{        name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,        "previousLife": previousLife->{          name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,          "hasOlderLives": defined(previousLife)        }      }    },    "risen": *[_type == "bug" && previousLife._ref == ^._id] | order(bornAt asc) {      name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,      "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0    }  }
 export type GRAVE_QUERY_RESULT = {
   _id: string;
   name: string;
@@ -299,6 +300,7 @@ export type GRAVE_QUERY_RESULT = {
     name: string;
     matchScore: number | null;
     reportedAt: string;
+    isExample: boolean | false;
   } | null;
   previousLife: {
     name: string;
@@ -442,7 +444,7 @@ export type GRAVEYARD_FILTERS_QUERY_RESULT = {
 
 // Source: sanity/lib/queries.ts
 // Variable: REPORT_PAGE_QUERY
-// Query: {  "languages": *[_type == "language"] | order(name asc) {_id, name},  "pending": *[_type == "bug" && publicReport.status == "pending"] | order(publicReport.submittedAt desc) [0...20] {    _id,    name,    "language": language->name,    "whatHappened": publicReport.whatHappened,    "submittedAt": publicReport.submittedAt,    coronerStatus,    coronerEpitaph,    "coronerCause": coronerCause->title,    matchStatus,    matchScore,    matchReason,    matchSignals[]{_key, label, matched, detail, points},    "candidate": resurrectionCandidate->{name, "slug": slug.current, fixSummary, fixUrl}  },  "components": array::unique(*[_type == "bug" && defined(component) && !(defined(publicReport) && publicReport.status == "pending")].component)}
+// Query: {  "languages": *[_type == "language"] | order(name asc) {_id, name},  "pending": *[_type == "bug" && publicReport.status == "pending" && isExample != true]    | order(publicReport.submittedAt desc) [0...20] {    _id,    name,    "language": language->name,    "whatHappened": publicReport.whatHappened,    "submittedAt": publicReport.submittedAt,    "isExample": isExample == true,    coronerStatus,    coronerEpitaph,    "coronerCause": coronerCause->title,    matchStatus,    matchScore,    matchReason,    matchSignals[]{_key, label, matched, detail, points},    "candidate": resurrectionCandidate->{name, "slug": slug.current, fixSummary, fixUrl}},  "examples": *[_type == "bug" && isExample == true && (isExample != true || dateTime(publicReport.submittedAt) > dateTime(now()) - 3600)]    | order(publicReport.submittedAt desc) [0...50] {    _id,    name,    "language": language->name,    "whatHappened": publicReport.whatHappened,    "submittedAt": publicReport.submittedAt,    "isExample": isExample == true,    coronerStatus,    coronerEpitaph,    "coronerCause": coronerCause->title,    matchStatus,    matchScore,    matchReason,    matchSignals[]{_key, label, matched, detail, points},    "candidate": resurrectionCandidate->{name, "slug": slug.current, fixSummary, fixUrl}},  "components": array::unique(*[_type == "bug" && defined(component) && !(defined(publicReport) && publicReport.status == "pending")].component)}
 export type REPORT_PAGE_QUERY_RESULT = {
   languages: Array<{
     _id: string;
@@ -454,7 +456,35 @@ export type REPORT_PAGE_QUERY_RESULT = {
     language: string | null;
     whatHappened: string | null;
     submittedAt: string | null;
-    coronerStatus: "accepted" | "awaiting approval" | null;
+    isExample: boolean | false;
+    coronerStatus: "accepted" | "awaiting approval" | "skipped" | null;
+    coronerEpitaph: string | null;
+    coronerCause: string | null;
+    matchStatus: "candidate" | "confirmed" | "dismissed" | "none" | null;
+    matchScore: number | null;
+    matchReason: string | null;
+    matchSignals: Array<{
+      _key: string;
+      label: string | null;
+      matched: boolean | null;
+      detail: string | null;
+      points: number | null;
+    }> | null;
+    candidate: {
+      name: string;
+      slug: string;
+      fixSummary: string | null;
+      fixUrl: string | null;
+    } | null;
+  }>;
+  examples: Array<{
+    _id: string;
+    name: string;
+    language: string | null;
+    whatHappened: string | null;
+    submittedAt: string | null;
+    isExample: boolean | false;
+    coronerStatus: "accepted" | "awaiting approval" | "skipped" | null;
     coronerEpitaph: string | null;
     coronerCause: string | null;
     matchStatus: "candidate" | "confirmed" | "dismissed" | "none" | null;
@@ -481,12 +511,12 @@ export type REPORT_PAGE_QUERY_RESULT = {
 import "@sanity/client";
 declare module "@sanity/client" {
   interface SanityQueries {
-    '\n  *[_type == "bug" && !(defined(publicReport) && publicReport.status == "pending")\n    && (!defined($language) || language->name == $language)\n    && (!defined($cause) || causeOfDeath->title == $cause)\n  ] | order(coalesce(buriedAt, fixMergedAt, bornAt) desc, name asc) {\n    _id,\n    name,\n    "slug": slug.current,\n    status,\n    epitaph,\n    bornAt,\n    fixMergedAt,\n    buriedAt,\n    language->{name, color},\n    causeOfDeath->{title},\n    "previousLife": previousLife->{name},\n    "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0,\n    "haunted": count(*[_type == "bug" && matchStatus == "candidate" && resurrectionCandidate._ref == ^._id]) > 0\n  }\n': GRAVEYARD_QUERY_RESULT;
-    '\n  *[_type == "bug" && slug.current == $slug && !(defined(publicReport) && publicReport.status == "pending")][0] {\n    _id,\n    name,\n    "slug": slug.current,\n    status,\n    severity,\n    epitaph,\n    killedBy,\n    hoursToKill,\n    bornAt,\n    fixMergedAt,\n    buriedAt,\n    timesResurrected,\n    component,\n    symptoms,\n    fixSummary,\n    fixUrl,\n    language->{name, color},\n    causeOfDeath->{title, description},\n    "haunting": *[_type == "bug" && matchStatus == "candidate" && resurrectionCandidate._ref == ^._id]\n      | order(_createdAt desc)[0]{name, matchScore, "reportedAt": coalesce(publicReport.submittedAt, _createdAt)},\n    "previousLife": previousLife->{\n      name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n      "previousLife": previousLife->{\n        name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n        "previousLife": previousLife->{\n          name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n          "hasOlderLives": defined(previousLife)\n        }\n      }\n    },\n    "risen": *[_type == "bug" && previousLife._ref == ^._id] | order(bornAt asc) {\n      name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n      "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0\n    }\n  }\n': GRAVE_QUERY_RESULT;
+    '\n  *[_type == "bug" && !(defined(publicReport) && publicReport.status == "pending")\n    && (!defined($language) || language->name == $language)\n    && (!defined($cause) || causeOfDeath->title == $cause)\n  ] | order(coalesce(buriedAt, fixMergedAt, bornAt) desc, name asc) {\n    _id,\n    name,\n    "slug": slug.current,\n    status,\n    epitaph,\n    bornAt,\n    fixMergedAt,\n    buriedAt,\n    language->{name, color},\n    causeOfDeath->{title},\n    "previousLife": previousLife->{name},\n    "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0,\n    "haunted": count(*[_type == "bug" && matchStatus == "candidate" && resurrectionCandidate._ref == ^._id && (isExample != true || dateTime(publicReport.submittedAt) > dateTime(now()) - 3600)]) > 0\n  }\n': GRAVEYARD_QUERY_RESULT;
+    '\n  *[_type == "bug" && slug.current == $slug && !(defined(publicReport) && publicReport.status == "pending")][0] {\n    _id,\n    name,\n    "slug": slug.current,\n    status,\n    severity,\n    epitaph,\n    killedBy,\n    hoursToKill,\n    bornAt,\n    fixMergedAt,\n    buriedAt,\n    timesResurrected,\n    component,\n    symptoms,\n    fixSummary,\n    fixUrl,\n    language->{name, color},\n    causeOfDeath->{title, description},\n    "haunting": *[_type == "bug" && matchStatus == "candidate" && resurrectionCandidate._ref == ^._id && (isExample != true || dateTime(publicReport.submittedAt) > dateTime(now()) - 3600)]\n      | order(_createdAt desc)[0]{name, matchScore, "reportedAt": coalesce(publicReport.submittedAt, _createdAt), "isExample": isExample == true},\n    "previousLife": previousLife->{\n      name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n      "previousLife": previousLife->{\n        name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n        "previousLife": previousLife->{\n          name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n          "hasOlderLives": defined(previousLife)\n        }\n      }\n    },\n    "risen": *[_type == "bug" && previousLife._ref == ^._id] | order(bornAt asc) {\n      name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n      "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0\n    }\n  }\n': GRAVE_QUERY_RESULT;
     '{\n  "deadliest": *[_type == "bug" && defined(hoursToKill) && !(defined(publicReport) && publicReport.status == "pending")] | order(hoursToKill desc, name asc) [0...5] {\n    name,\n    "slug": slug.current,\n    hoursToKill,\n    language->{name, color}\n  },\n  "hauntedLanguages": *[_type == "language"] {\n    name,\n    color,\n    "zombies": count(*[_type == "bug" && defined(previousLife) && language._ref == ^._id && !(defined(publicReport) && publicReport.status == "pending")])\n  } [zombies > 0] | order(zombies desc, name asc),\n  "causes": *[_type == "causeOfDeath"] {\n    title,\n    "bugs": count(*[_type == "bug" && causeOfDeath._ref == ^._id && !(defined(publicReport) && publicReport.status == "pending")])\n  } [bugs > 0] | order(bugs desc, title asc),\n  "mostResurrected": *[_type == "bug" && timesResurrected > 0 && !(defined(publicReport) && publicReport.status == "pending")] | order(timesResurrected desc, bornAt desc) [0] {\n    name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n    timesResurrected,\n    "previousLife": previousLife->{\n      name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n      "previousLife": previousLife->{\n        name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n        "previousLife": previousLife->{\n          name, "slug": slug.current, epitaph, status, bornAt, fixMergedAt, buriedAt,\n          "hasOlderLives": defined(previousLife)\n        }\n      }\n    }\n  }\n}': LEADERBOARD_QUERY_RESULT;
     '\n  *[_type == "bug" && slug.current == $slug && !(defined(publicReport) && publicReport.status == "pending")][0] {\n    name,\n    epitaph,\n    status,\n    bornAt,\n    fixMergedAt,\n    buriedAt,\n    "language": language->name,\n    "causeOfDeath": causeOfDeath->title,\n    "risenFrom": previousLife->name,\n    "disturbed": count(*[_type == "bug" && previousLife._ref == ^._id]) > 0\n  }\n': GRAVE_OG_QUERY_RESULT;
     '\n  *[_type == "bug" && defined(slug.current) && !(defined(publicReport) && publicReport.status == "pending")] {"slug": slug.current}\n': GRAVE_SLUGS_QUERY_RESULT;
     '{\n  "languages": *[_type == "language"] | order(name asc) {\n    name,\n    color,\n    "count": count(*[_type == "bug" && language._ref == ^._id && !(defined(publicReport) && publicReport.status == "pending")])\n  },\n  "causes": *[_type == "causeOfDeath"] | order(title asc) {\n    title,\n    "count": count(*[_type == "bug" && causeOfDeath._ref == ^._id && !(defined(publicReport) && publicReport.status == "pending")])\n  }\n}': GRAVEYARD_FILTERS_QUERY_RESULT;
-    '{\n  "languages": *[_type == "language"] | order(name asc) {_id, name},\n  "pending": *[_type == "bug" && publicReport.status == "pending"] | order(publicReport.submittedAt desc) [0...20] {\n    _id,\n    name,\n    "language": language->name,\n    "whatHappened": publicReport.whatHappened,\n    "submittedAt": publicReport.submittedAt,\n    coronerStatus,\n    coronerEpitaph,\n    "coronerCause": coronerCause->title,\n    matchStatus,\n    matchScore,\n    matchReason,\n    matchSignals[]{_key, label, matched, detail, points},\n    "candidate": resurrectionCandidate->{name, "slug": slug.current, fixSummary, fixUrl}\n  },\n  "components": array::unique(*[_type == "bug" && defined(component) && !(defined(publicReport) && publicReport.status == "pending")].component)\n}': REPORT_PAGE_QUERY_RESULT;
+    '{\n  "languages": *[_type == "language"] | order(name asc) {_id, name},\n  "pending": *[_type == "bug" && publicReport.status == "pending" && isExample != true]\n    | order(publicReport.submittedAt desc) [0...20] {\n    _id,\n    name,\n    "language": language->name,\n    "whatHappened": publicReport.whatHappened,\n    "submittedAt": publicReport.submittedAt,\n    "isExample": isExample == true,\n    coronerStatus,\n    coronerEpitaph,\n    "coronerCause": coronerCause->title,\n    matchStatus,\n    matchScore,\n    matchReason,\n    matchSignals[]{_key, label, matched, detail, points},\n    "candidate": resurrectionCandidate->{name, "slug": slug.current, fixSummary, fixUrl}},\n  "examples": *[_type == "bug" && isExample == true && (isExample != true || dateTime(publicReport.submittedAt) > dateTime(now()) - 3600)]\n    | order(publicReport.submittedAt desc) [0...50] {\n    _id,\n    name,\n    "language": language->name,\n    "whatHappened": publicReport.whatHappened,\n    "submittedAt": publicReport.submittedAt,\n    "isExample": isExample == true,\n    coronerStatus,\n    coronerEpitaph,\n    "coronerCause": coronerCause->title,\n    matchStatus,\n    matchScore,\n    matchReason,\n    matchSignals[]{_key, label, matched, detail, points},\n    "candidate": resurrectionCandidate->{name, "slug": slug.current, fixSummary, fixUrl}},\n  "components": array::unique(*[_type == "bug" && defined(component) && !(defined(publicReport) && publicReport.status == "pending")].component)\n}': REPORT_PAGE_QUERY_RESULT;
   }
 }

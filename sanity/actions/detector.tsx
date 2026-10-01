@@ -4,7 +4,7 @@ import {type DocumentActionComponent, type SanityDocument, useClient} from 'sani
 import {apiVersion} from '../env'
 import {MATCH_CANDIDATE, MATCH_CONFIRMED, MATCH_DISMISSED} from '../lib/detector'
 import {slugify, todayUTC, zombieName} from '../lib/lifecycle'
-import {REPORT_APPROVED, REPORT_PENDING} from '../lib/publicReport'
+import {EXAMPLE_REFUSAL, REPORT_APPROVED, REPORT_PENDING} from '../lib/publicReport'
 import {blockedBecause, RISEN_QUERY, uniqueSlug, useRun} from './lifecycle'
 
 // What a person does with the Zombie Detector's suggestion on a new bug. The
@@ -20,6 +20,7 @@ type SuspectBug = SanityDocument & {
   causeOfDeath?: {_ref: string}
   bornAt?: string
   publicReport?: {status?: string}
+  isExample?: boolean
 }
 
 type Candidate = {
@@ -57,7 +58,8 @@ function useCandidate(id: string | undefined) {
 
 // "🧟 Confirm resurrection": the new bug becomes the candidate grave's zombie, with
 // the same rules as "Report resurrection" (the name, the count along the chain, a
-// grave only rises once). A pending public report joins the graveyard with it.
+// grave only rises once). A pending public report joins the graveyard with it. The
+// report page's examples are refused: they're deleted after an hour.
 export const ConfirmResurrectionAction: DocumentActionComponent = (props) => {
   const client = useClient({apiVersion})
   const {busy, run, errorDialog} = useRun(props.onComplete)
@@ -66,7 +68,7 @@ export const ConfirmResurrectionAction: DocumentActionComponent = (props) => {
   const candidate = useCandidate(bug?.resurrectionCandidate?._ref)
 
   if (bug?.matchStatus !== MATCH_CANDIDATE || !bug.resurrectionCandidate) return null
-  const blocked = blockedBecause(props)
+  const blocked = bug.isExample ? EXAMPLE_REFUSAL : blockedBecause(props)
   const dead = candidate?.status === 'fix-merged' || candidate?.status === 'buried'
   const number = (candidate?.timesResurrected ?? 0) + 1
   const newName = candidate?.name ? zombieName(candidate.name, number) : null
@@ -75,6 +77,7 @@ export const ConfirmResurrectionAction: DocumentActionComponent = (props) => {
     setConfirming(false)
     run(async () => {
       if (!bug || !candidate || !newName) return
+      if (bug.isExample) throw new Error(EXAMPLE_REFUSAL)
       // Checked again here: another zombie may have risen from that grave meanwhile
       const already = await client.fetch<string | null>(RISEN_QUERY, {id: candidate._id}, {perspective: 'raw'})
       if (already) throw new Error(`“${candidate.name}” already rose as “${already}”. A grave only rises once.`)

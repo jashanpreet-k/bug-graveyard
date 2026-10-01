@@ -27,7 +27,7 @@ const COLUMNS: Column[] = [
     hint: 'Probably fixed. Probably.',
     empty: 'No suspects.',
     // Possible resurrections get their own band above the columns
-    filter: 'status == "suspected-dead" && !(matchStatus == "candidate")',
+    filter: 'status == "suspected-dead" && !(matchStatus == "candidate") && isExample != true',
   },
   {
     id: 'walking',
@@ -97,7 +97,7 @@ export function Morgue() {
 function PossibleResurrections() {
   const {data} = useDocuments({
     documentType: 'bug',
-    filter: 'matchStatus == "candidate"',
+    filter: 'matchStatus == "candidate" && isExample != true',
     perspective: 'published',
     orderings: [{field: '_createdAt', direction: 'desc'}],
     batchSize: 10,

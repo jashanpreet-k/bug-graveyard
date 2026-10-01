@@ -3,7 +3,7 @@ import {type DocumentActionComponent, type SanityDocument, useClient} from 'sani
 
 import {apiVersion} from '../env'
 import {CORONER_ACCEPTED, CORONER_AWAITING} from '../lib/coroner'
-import {REPORT_APPROVED, REPORT_PENDING} from '../lib/publicReport'
+import {EXAMPLE_REFUSAL, REPORT_APPROVED, REPORT_PENDING} from '../lib/publicReport'
 import {blockedBecause, useRun} from './lifecycle'
 
 // "✅ Accept coroner's report": the only way the coroner's AI suggestion reaches a
@@ -16,6 +16,7 @@ type ReportedBug = SanityDocument & {
   coronerEpitaph?: string
   coronerCause?: {_ref: string}
   publicReport?: {status?: string}
+  isExample?: boolean
 }
 
 export const AcceptCoronerReportAction: DocumentActionComponent = (props) => {
@@ -28,7 +29,8 @@ export const AcceptCoronerReportAction: DocumentActionComponent = (props) => {
   // Only bugs with a report waiting get the action
   if (bug?.coronerStatus !== CORONER_AWAITING) return null
 
-  const blocked = blockedBecause(props)
+  // The report page's examples never join the graveyard
+  const blocked = bug.isExample ? EXAMPLE_REFUSAL : blockedBecause(props)
   const epitaph = bug.coronerEpitaph?.trim()
 
   function accept() {

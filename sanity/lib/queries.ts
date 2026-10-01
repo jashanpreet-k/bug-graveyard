@@ -1,14 +1,23 @@
 import {defineQuery} from 'next-sanity'
 
+import {EXAMPLE_LIFETIME_SECONDS} from './publicReport'
+
 // A bug from the site's report page stays out of the graveyard (the homepage, grave
 // pages, the leaderboard, filters and share images) until someone approves it in
 // the Studio. Every query that lists graves includes this condition.
 const IN_GRAVEYARD = `!(defined(publicReport) && publicReport.status == "pending")`
 
-// A grave is haunted while the Zombie Detector suggests that a new bug might be it
-// coming back and nobody has confirmed or dismissed that yet. Worked out here from
-// the pending suggestions, never stored on the grave.
-const HAUNTED = `count(*[_type == "bug" && matchStatus == "candidate" && resurrectionCandidate._ref == ^._id]) > 0`
+// A report page example ("Try an example") only counts during its hour; after that
+// it's as good as dismissed, even before the cleanup deletes it.
+const FRESH = `(isExample != true || dateTime(publicReport.submittedAt) > dateTime(now()) - ${EXAMPLE_LIFETIME_SECONDS})`
+
+// A new bug the Zombie Detector suggests might be this grave (^) coming back, that
+// nobody has confirmed or dismissed yet
+const HAUNTING = `_type == "bug" && matchStatus == "candidate" && resurrectionCandidate._ref == ^._id && ${FRESH}`
+
+// A grave is haunted while such a suggestion is pending. Worked out here from the
+// pending suggestions, never stored on the grave.
+const HAUNTED = `count(*[${HAUNTING}]) > 0`
 
 // Every bug in the graveyard, newest death first. $language and $cause narrow
 // the list; pass null to skip either filter. A grave is "disturbed" when another
@@ -60,8 +69,8 @@ export const GRAVE_QUERY = defineQuery(`
     fixUrl,
     language->{name, color},
     causeOfDeath->{title, description},
-    "haunting": *[_type == "bug" && matchStatus == "candidate" && resurrectionCandidate._ref == ^._id]
-      | order(_createdAt desc)[0]{name, matchScore, "reportedAt": coalesce(publicReport.submittedAt, _createdAt)},
+    "haunting": *[${HAUNTING}]
+      | order(_createdAt desc)[0]{name, matchScore, "reportedAt": coalesce(publicReport.submittedAt, _createdAt), "isExample": isExample == true},
     "previousLife": previousLife->{
       ${PAST_LIFE},
       "previousLife": previousLife->{
@@ -152,14 +161,14 @@ export const GRAVEYARD_FILTERS_QUERY = defineQuery(`{
 
 // The report page: the languages to choose from, and the newest reports still
 // waiting for approval, with the coroner's draft if it has written one.
-export const REPORT_PAGE_QUERY = defineQuery(`{
-  "languages": *[_type == "language"] | order(name asc) {_id, name},
-  "pending": *[_type == "bug" && publicReport.status == "pending"] | order(publicReport.submittedAt desc) [0...20] {
+// A public report as the report page shows it
+const REPORT_FIELDS = `
     _id,
     name,
     "language": language->name,
     "whatHappened": publicReport.whatHappened,
     "submittedAt": publicReport.submittedAt,
+    "isExample": isExample == true,
     coronerStatus,
     coronerEpitaph,
     "coronerCause": coronerCause->title,
@@ -167,7 +176,16 @@ export const REPORT_PAGE_QUERY = defineQuery(`{
     matchScore,
     matchReason,
     matchSignals[]{_key, label, matched, detail, points},
-    "candidate": resurrectionCandidate->{name, "slug": slug.current, fixSummary, fixUrl}
-  },
+    "candidate": resurrectionCandidate->{name, "slug": slug.current, fixSummary, fixUrl}`
+
+// The report page: the languages and components to pick from, the public list of
+// reports awaiting approval, and this hour's examples. Examples never appear in the
+// list; the page only uses them to show a visitor the result of their own.
+export const REPORT_PAGE_QUERY = defineQuery(`{
+  "languages": *[_type == "language"] | order(name asc) {_id, name},
+  "pending": *[_type == "bug" && publicReport.status == "pending" && isExample != true]
+    | order(publicReport.submittedAt desc) [0...20] {${REPORT_FIELDS}},
+  "examples": *[_type == "bug" && isExample == true && ${FRESH}]
+    | order(publicReport.submittedAt desc) [0...50] {${REPORT_FIELDS}},
   "components": array::unique(*[_type == "bug" && defined(component) && ${IN_GRAVEYARD}].component)
 }`)

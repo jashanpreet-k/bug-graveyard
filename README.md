@@ -59,7 +59,12 @@ Live: **https://bug-graveyard.vercel.app** · Built with Next.js + Sanity for th
   report a bug. The coroner drafts its epitaph, the page lists it as awaiting approval,
   and it only joins the graveyard once it's approved in the Studio. It has a honeypot,
   per-visitor and daily limits (counted in private documents), length limits, and link
-  and profanity checks.
+  and profanity checks. **👻 Try an example** sends a report the detector reliably
+  recognises: examples stay out of the public list, can't be approved or confirmed,
+  haunt their grave for an hour and are then deleted (by the next report or the
+  gravedigger). Once the daily AI budget (15 reports) is used, real reports get a
+  friendly "come back tomorrow" and examples still get the detector's signals and
+  score, which need no AI, with "Reason unavailable, daily AI budget used".
 - **The Morgue, an App SDK app.** A live board in the Sanity Dashboard of every bug that
   isn't resting yet (suspected dead, walking, waiting, ready to bury), with the same
   lifecycle actions on each card. See [`apps/morgue`](apps/morgue).
@@ -190,8 +195,9 @@ npx sanity@latest functions test coroner --document-id <bug-id> --project-id <id
 npx sanity@latest blueprints deploy
 ```
 
-Each coroner report uses one AI credit. On the Free plan, scheduled functions can run at
-most daily.
+Each coroner report uses one AI credit, or two for a possible resurrection. On the Free
+plan, scheduled functions can run at most daily. The gravedigger also deletes the report
+page's example reports once they're older than an hour.
 
 ## About the graves
 

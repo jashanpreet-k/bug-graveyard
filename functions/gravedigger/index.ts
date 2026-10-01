@@ -2,6 +2,7 @@ import {createClient} from '@sanity/client'
 import {scheduledEventHandler} from '@sanity/functions'
 
 import {burialCutoff, daysBetween, daysUntilBurial, todayUTC} from '../../sanity/lib/lifecycle'
+import {exampleCutoff, EXPIRED_EXAMPLES_QUERY} from '../../sanity/lib/publicReport'
 
 // The gravedigger: a scheduled Sanity Function that runs once a day (see
 // sanity.blueprint.ts) and buries every bug whose fix has held for BURIAL_WAIT_DAYS,
@@ -11,7 +12,11 @@ import {burialCutoff, daysBetween, daysUntilBurial, todayUTC} from '../../sanity
 // and it leaves alone any bug with unpublished Studio changes, which would otherwise
 // overwrite the new status when they're published.
 //
-// Set DRY_RUN=1 to only log what it would bury.
+// It also sweeps away the report page's example reports older than an hour. The
+// report page does that too whenever someone sends a report; this daily run is the
+// backstop for quiet days.
+//
+// Set DRY_RUN=1 to only log what it would bury and delete.
 
 const PROJECT_ID = 'rzjmw6lg'
 const DATASET = 'production'
@@ -46,6 +51,22 @@ export const handler = scheduledEventHandler(async ({context}) => {
   })
   const dryRun = process.env.DRY_RUN === '1'
   const today = todayUTC()
+
+  // Example reports that have had their hour. A failure here never stops the burials.
+  try {
+    const cutoff = exampleCutoff()
+    const expired = await client.fetch<string[]>(`${EXPIRED_EXAMPLES_QUERY}._id`, {cutoff}, {perspective: 'raw'})
+    if (expired.length === 0) {
+      console.log('👻 No example reports to sweep away.')
+    } else if (dryRun) {
+      console.log(`🔎 Would delete ${expired.length} example report(s) older than an hour`)
+    } else {
+      await client.delete({query: EXPIRED_EXAMPLES_QUERY, params: {cutoff}})
+      console.log(`👻 Deleted ${expired.length} example report(s) older than an hour`)
+    }
+  } catch (err) {
+    console.log(`⚠️  Couldn't sweep away example reports: ${err instanceof Error ? err.message : String(err)}`)
+  }
 
   const {due, unpublished} = await client.fetch<{due: DueBug[]; unpublished: string[]}>(
     QUERY,

@@ -61,9 +61,12 @@ export default async function GravePage({params}: PageProps<'/grave/[slug]'>) {
         <section aria-labelledby="certificate" className="w-full max-w-2xl">
           {grave.haunting && (
             <p className="mb-6 rounded-xl border border-[#cfe0ff]/30 bg-[#141b2c] p-4 text-sm text-[#dbe6ff]">
-              👻 <strong>Haunted.</strong> “{grave.haunting.name}” was just reported, and the Zombie Detector thinks it
-              might be this bug coming back (match score {grave.haunting.matchScore ?? '?'} from 4 signals). The graveyard
-              keeper will confirm it or dismiss it.
+              👻 <strong>Haunted.</strong> “{grave.haunting.name}” was just{' '}
+              {grave.haunting.isExample ? 'sent as an example' : 'reported'}, and the Zombie Detector thinks it might be
+              this bug coming back (match score {grave.haunting.matchScore ?? '?'} from 4 signals).{' '}
+              {grave.haunting.isExample
+                ? 'Examples are dismissed automatically after an hour.'
+                : 'The graveyard keeper will confirm it or dismiss it.'}
             </p>
           )}
           <h2 id="certificate" className="font-display text-3xl text-bone">
